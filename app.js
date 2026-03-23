@@ -1264,6 +1264,7 @@ const WA_FLOWS = {
     { bot: "👋 Hi! I'm *ParkLink Bot*.\n\nI can help you book parking instantly.\n\nWhich city are you in?", quick: ['Madurai','Chennai','Coimbatore','Mumbai'] },
     { bot: "Great! 📍 {city}\n\nSearching parking lots near you…\n\nI found *3 available lots*:\n1️⃣ Anna Nagar Hub — ₹30/hr (28 slots)\n2️⃣ Race Course Complex — ₹20/hr (7 slots)\n3️⃣ Bypass EV Park — ₹40/hr ⚡\n\nWhich one?", quick: ['Anna Nagar Hub','Race Course','Bypass EV Park'] },
     { bot: "✅ *{park}* selected!\n\nHow long will you park?", quick: ['1 hour','2 hours','3 hours','All day'] },
+    { bot: "🚙 What type of vehicle do you have?", quick: ['🚗 Normal Vehicle','⚡ EV (Electric)'] },
     { bot: "Perfect! 🚗 What is your vehicle number?\n\n_(e.g. TN 59 AB 1234)_" },
     { bot: "🎫 *Booking Confirmed!*\n\nHere is your ticket:", ticket: true, quick: ['Book another','View my bookings','Need help'] }
   ],
@@ -1381,12 +1382,14 @@ function processWaMessage(msg) {
     if (WA.step === 1) { WA.data.city = msg; }
     if (WA.step === 2) { WA.data.park = msg.includes('race') ? 'Race Course Complex' : msg.includes('bypass')||msg.includes('ev') ? 'Bypass EV Park' : 'Anna Nagar Hub'; }
     if (WA.step === 3) { WA.data.dur = msg; }
-    if (WA.step === 4) {
+    if (WA.step === 4) { WA.data.vehicleType = msg.includes('ev') || msg.includes('electric') ? 'ev' : 'car'; }
+    if (WA.step === 5) {
       WA.data.vehicle = msg.toUpperCase();
       // Simulate booking
       const p = DB.parks[0];
-      DB.currentBooking = { id:'BKG-WA-'+Date.now(), parkName: WA.data.park||'Anna Nagar Hub', parkAddr:'Madurai', slot:'A-'+String(Math.floor(Math.random()*15)+1).padStart(2,'0'), vehicle: WA.data.vehicle, vehicleType:'car', duration: WA.data.dur||'2 hours', amount: 60, durationMins:120, start:new Date() };
-      const step = steps[4];
+      const isEV = WA.data.vehicleType === 'ev';
+      DB.currentBooking = { id:'BKG-WA-'+Date.now(), parkName: WA.data.park||'Anna Nagar Hub', parkAddr:'Madurai', slot: (isEV ? 'EV' : 'A') + '-'+String(Math.floor(Math.random()*15)+1).padStart(2,'0'), vehicle: WA.data.vehicle, vehicleType: WA.data.vehicleType || 'car', duration: WA.data.dur||'2 hours', amount: isEV ? 80 : 60, durationMins:120, start:new Date() };
+      const step = steps[5];
       setTimeout(() => waBotSay(step.bot, step.quick, true), 300);
       WA.flow = null; WA.step = 0;
       return;
