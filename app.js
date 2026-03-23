@@ -223,12 +223,17 @@ async function sendOTP() {
   DB.mobileNumber = num;
   showLoader('Sending OTP…');
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
   try {
     const res = await fetch('http://localhost:5000/api/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: num })
+      body: JSON.stringify({ phone: num }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     const data = await res.json();
     hideLoader();
 
@@ -243,13 +248,14 @@ async function sendOTP() {
       toast(data.error || 'Failed to send OTP', 'error', '❌');
     }
   } catch (err) {
+    clearTimeout(timeoutId);
     hideLoader();
-    // Fallback to client-side OTP if server is unreachable
     DB.generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
     document.getElementById('loginStep1').classList.add('hidden');
     document.getElementById('loginStep2').classList.remove('hidden');
     document.getElementById('otpSentMsg').textContent = `OTP sent to +91 ${num.slice(0,3)}****${num.slice(7)}`;
-    toast(`OTP: ${DB.generatedOTP} (Offline mode)`, 'info', '📱');
+    toast(`OFFLINE MODE: Using OTP ${DB.generatedOTP}`, 'info', '📱');
+    console.warn("OTP Server unreachable. Falling back to offline mode.");
     document.querySelectorAll('.otp-box')[0].focus();
     startResendTimer();
   }
@@ -261,12 +267,17 @@ async function verifyOTP() {
   if (entered.length < 6) { toast('Enter complete 6-digit OTP','warn','⚠️'); return; }
   showLoader('Verifying OTP…');
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
   try {
     const res = await fetch('http://localhost:5000/api/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: DB.mobileNumber, otp: entered })
+      body: JSON.stringify({ phone: DB.mobileNumber, otp: entered }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     const data = await res.json();
     hideLoader();
 
@@ -283,13 +294,13 @@ async function verifyOTP() {
       toast(data.error || 'Wrong OTP. Try again','error','❌');
     }
   } catch (err) {
+    clearTimeout(timeoutId);
     hideLoader();
-    // Fallback to client-side verification
     if (DB.generatedOTP && entered === DB.generatedOTP) {
       document.getElementById('otpError').classList.add('hidden');
       boxes.forEach(b => b.classList.add('filled'));
       DB.currentUser = { name: 'Arun Kumar', phone:`+91 ${DB.mobileNumber}`, method:'otp' };
-      toast('OTP verified successfully!','success','✅');
+      toast('OTP verified (Offline mode)','success','✅');
       setTimeout(() => routeByRole(), 700);
     } else {
       document.getElementById('otpError').classList.remove('hidden');
