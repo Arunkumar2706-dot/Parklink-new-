@@ -217,31 +217,75 @@ function appleLogin() {
   }, 1800);
 }
 
-function sendOTP() {
+async function sendOTP() {
   const num = document.getElementById('mobileInput').value.trim();
   if (!/^\d{10}$/.test(num)) { toast('Enter a valid 10-digit mobile number','error','❌'); return; }
   DB.mobileNumber = num;
-  DB.generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
   showLoader('Sending OTP…');
-  setTimeout(() => {
+
+  try {
+    const res = await fetch('http://localhost:5000/api/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: num })
+    });
+    const data = await res.json();
     hideLoader();
+
+    if (res.ok) {
+      document.getElementById('loginStep1').classList.add('hidden');
+      document.getElementById('loginStep2').classList.remove('hidden');
+      document.getElementById('otpSentMsg').textContent = `OTP sent to +91 ${num.slice(0,3)}****${num.slice(7)}`;
+      toast(`OTP sent to +91 ${num}! Check your terminal console.`, 'success', '📱');
+      document.querySelectorAll('.otp-box')[0].focus();
+      startResendTimer();
+    } else {
+      toast(data.error || 'Failed to send OTP', 'error', '❌');
+    }
+  } catch (err) {
+    hideLoader();
+    // Fallback to client-side OTP if server is unreachable
+    DB.generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
     document.getElementById('loginStep1').classList.add('hidden');
     document.getElementById('loginStep2').classList.remove('hidden');
-    document.getElementById('otpSentMsg').textContent = `OTP sent to +91 ${num.slice(0,5)}XXXXX`;
-    toast(`OTP: ${DB.generatedOTP} (Demo mode)`, 'info', '📱');
+    document.getElementById('otpSentMsg').textContent = `OTP sent to +91 ${num.slice(0,3)}****${num.slice(7)}`;
+    toast(`OTP: ${DB.generatedOTP} (Offline mode)`, 'info', '📱');
     document.querySelectorAll('.otp-box')[0].focus();
     startResendTimer();
-  }, 1500);
+  }
 }
 
-function verifyOTP() {
+async function verifyOTP() {
   const boxes = document.querySelectorAll('.otp-box');
   const entered = Array.from(boxes).map(b=>b.value).join('');
   if (entered.length < 6) { toast('Enter complete 6-digit OTP','warn','⚠️'); return; }
   showLoader('Verifying OTP…');
-  setTimeout(() => {
+
+  try {
+    const res = await fetch('http://localhost:5000/api/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: DB.mobileNumber, otp: entered })
+    });
+    const data = await res.json();
     hideLoader();
-    if (entered === DB.generatedOTP) {
+
+    if (res.ok) {
+      document.getElementById('otpError').classList.add('hidden');
+      boxes.forEach(b => b.classList.add('filled'));
+      DB.currentUser = { name: 'Arun Kumar', phone:`+91 ${DB.mobileNumber}`, method:'otp' };
+      toast('OTP verified successfully!','success','✅');
+      setTimeout(() => routeByRole(), 700);
+    } else {
+      document.getElementById('otpError').classList.remove('hidden');
+      boxes.forEach(b => { b.value=''; b.classList.remove('filled'); });
+      boxes[0].focus();
+      toast(data.error || 'Wrong OTP. Try again','error','❌');
+    }
+  } catch (err) {
+    hideLoader();
+    // Fallback to client-side verification
+    if (DB.generatedOTP && entered === DB.generatedOTP) {
       document.getElementById('otpError').classList.add('hidden');
       boxes.forEach(b => b.classList.add('filled'));
       DB.currentUser = { name: 'Arun Kumar', phone:`+91 ${DB.mobileNumber}`, method:'otp' };
@@ -253,7 +297,7 @@ function verifyOTP() {
       boxes[0].focus();
       toast('Wrong OTP. Try again','error','❌');
     }
-  }, 1200);
+  }
 }
 
 function routeByRole() {
@@ -280,16 +324,28 @@ function startResendTimer() {
   }, 1000);
 }
 
-function resendOTP() {
-  DB.generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
+async function resendOTP() {
   showLoader('Resending OTP…');
-  setTimeout(() => {
+  try {
+    const res = await fetch('http://localhost:5000/api/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: DB.mobileNumber })
+    });
     hideLoader();
-    toast(`New OTP: ${DB.generatedOTP} (Demo)`, 'info', '📱');
-    startResendTimer();
-    document.querySelectorAll('.otp-box').forEach(b => { b.value=''; b.classList.remove('filled'); });
-    document.getElementById('otpError').classList.add('hidden');
-  }, 1000);
+    if (res.ok) {
+      toast('New OTP sent! Check your terminal console.', 'success', '📱');
+    } else {
+      toast('Failed to resend OTP', 'error', '❌');
+    }
+  } catch (err) {
+    hideLoader();
+    DB.generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
+    toast(`New OTP: ${DB.generatedOTP} (Offline)`, 'info', '📱');
+  }
+  startResendTimer();
+  document.querySelectorAll('.otp-box').forEach(b => { b.value=''; b.classList.remove('filled'); });
+  document.getElementById('otpError').classList.add('hidden');
 }
 
 function backToMobile() {

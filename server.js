@@ -44,6 +44,39 @@ app.post('/api/sync', (req, res) => {
   }
 });
 
+// In-memory OTP store (keyed by phone number)
+const otpStore = {};
+
+// Send OTP — generates and stores a 6-digit OTP
+app.post('/api/send-otp', (req, res) => {
+  const { phone } = req.body;
+  if (!phone || !/^\d{10}$/.test(phone)) {
+    return res.status(400).json({ error: 'Valid 10-digit phone number required' });
+  }
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore[phone] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 }; // 5 min expiry
+
+  // ── In production, integrate Twilio/MSG91 here ──
+  console.log(`\n📱 OTP for +91 ${phone}: ${otp}\n`);
+
+  res.json({ success: true, message: `OTP sent to +91 ${phone}` });
+});
+
+// Verify OTP
+app.post('/api/verify-otp', (req, res) => {
+  const { phone, otp } = req.body;
+  const record = otpStore[phone];
+  if (!record) return res.status(400).json({ error: 'No OTP sent to this number' });
+  if (Date.now() > record.expiresAt) {
+    delete otpStore[phone];
+    return res.status(400).json({ error: 'OTP expired. Request a new one.' });
+  }
+  if (record.otp !== otp) return res.status(400).json({ error: 'Invalid OTP' });
+
+  delete otpStore[phone]; // One-time use
+  res.json({ success: true, message: 'OTP verified successfully' });
+});
+
 const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
