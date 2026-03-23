@@ -1,0 +1,32 @@
+{
+  "name": "parklink-new",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:ui": "vite",
+    "dev:api": "node server.js",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Arunkumar2706-dot/Parklink-new-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Arunkumar2706-dot/Parklink-new-/issues"
+  },
+  "homepage": "https://github.com/Arunkumar2706-dot/Parklink-new-#readme",
+  "devDependencies": {
+    "vite": "^8.0.2"
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}

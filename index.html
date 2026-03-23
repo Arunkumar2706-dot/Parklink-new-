@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<title>ParkLink — Smart Parking India</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- QR Code library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════ LOADER ══ -->
+<div class="loader-overlay hidden" id="globalLoader">
+  <div class="spin"></div>
+  <div class="loader-text" id="loaderText">Please wait…</div>
+</div>
+
+<!-- ══════════════════════════════════ TOASTS ══ -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ══════════════════════════════════ MODALS ══ -->
+<!-- EV Modal -->
+<div class="modal-backdrop" id="evModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚡ EV Charging Details</div>
+    <div style="padding:0 20px 8px">
+      <div class="card mb12" style="background:var(--ev-light);border:1px solid var(--ev-light)">
+        <div style="font-size:14px;font-weight:700;color:var(--ev);margin-bottom:10px">Available Chargers</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="row justify-between"><span class="text-sm">Type 2 AC (22 kW)</span><span class="badge badge-green">2 free</span></div>
+          <div class="row justify-between"><span class="text-sm">CCS DC Fast (50 kW)</span><span class="badge badge-green">1 free</span></div>
+          <div class="row justify-between"><span class="text-sm">CHAdeMO (50 kW)</span><span class="badge badge-red">Busy</span></div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7">EV charging is billed separately at ₹12/unit. Park + charge combo available. Avg charge time: 45–90 min.</div>
+    </div>
+    <div style="padding:16px 20px"><button class="btn btn-primary" onclick="closeModal('evModal')">Got it</button></div>
+  </div>
+</div>
+
+<!-- Vehicle Modal -->
+<div class="modal-backdrop" id="vehicleModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🚗 My Vehicles</div>
+    <div style="padding:0 20px" id="vehicleModalList"></div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-ghost" style="color:var(--blue);background:var(--blue-light)" onclick="closeModal('vehicleModal')">Add New Vehicle</button>
+      <button class="btn btn-outline" style="color:var(--text-muted);border-color:var(--border)" onclick="closeModal('vehicleModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Vehicle Modal -->
+<div class="modal-backdrop" id="addVehicleModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🚗 Add New Vehicle</div>
+    <div style="padding:0 20px 8px">
+      <div class="form-field">
+        <label class="form-label">Vehicle Type</label>
+        <select class="form-input" id="newVehicleType" style="margin-bottom:10px">
+          <option value="car">Car (🚗)</option>
+          <option value="bike">Bike (🏍️)</option>
+          <option value="ev">EV Car (⚡🚗)</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Vehicle Name</label>
+        <input type="text" class="form-input" id="newVehicleName" placeholder="e.g. Honda City" style="margin-bottom:10px">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Registration Number</label>
+        <input type="text" class="form-input" id="newVehicleReg" placeholder="e.g. TN 59 AB 1234">
+      </div>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" onclick="submitNewVehicle()">Add Vehicle</button>
+      <button class="btn btn-outline" style="color:var(--text-muted);border-color:var(--border)" onclick="closeModal('addVehicleModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="settingsModalTitle">⚙️ Settings</div>
+    <div style="padding:0 20px; text-align:center">
+      <div style="font-size:48px; margin-bottom:12px; margin-top:16px;">🚧</div>
+      <div style="font-size:18px; font-weight:700; color:var(--text); margin-bottom:8px">Under Construction</div>
+      <div style="font-size:14px; color:var(--text-muted); line-height:1.6; margin-bottom:24px">This module is currently being built by the ParkLink team. Check back soon for updates!</div>
+    </div>
+    <div style="padding:16px 20px; border-top:1px solid var(--border)">
+      <button class="btn btn-primary" onclick="closeModal('settingsModal')">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- Wallet Modal -->
+<div class="modal-backdrop" id="walletModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💳 My Wallet</div>
+    <div style="padding:0 20px 16px; text-align:center">
+      <div style="font-size:14px; color:var(--text-muted); margin-bottom:4px">Current Balance</div>
+      <div style="font-size:36px; font-weight:800; color:var(--blue); margin-bottom:20px" id="walletBalanceDisplay">₹0</div>
+      
+      <div style="display:flex; gap:10px; margin-bottom:20px">
+        <button class="btn" style="flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text)" onclick="document.getElementById('addMoneyInput').value = '100'">+₹100</button>
+        <button class="btn" style="flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text)" onclick="document.getElementById('addMoneyInput').value = '200'">+₹200</button>
+        <button class="btn" style="flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text)" onclick="document.getElementById('addMoneyInput').value = '500'">+₹500</button>
+      </div>
+
+      <div class="form-field" style="text-align:left">
+        <label class="form-label">Custom Amount</label>
+        <div class="inp-wrap has-prefix" style="margin-bottom:0">
+          <span class="inp-prefix" style="color:var(--text)">₹</span>
+          <input type="number" id="addMoneyInput" placeholder="Enter amount" inputmode="numeric">
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 20px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:10px">
+      <button class="btn btn-primary" onclick="addMoney()">Add Money</button>
+      <button class="btn btn-outline" style="color:var(--text-muted);border-color:var(--border)" onclick="closeModal('walletModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-backdrop" id="reviewModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⭐ Rate Parking Lot</div>
+    <div style="padding:0 20px 16px; text-align:center">
+      <div style="font-size:16px; font-weight:700; margin-bottom:12px" id="reviewParkName">Park Name</div>
+      
+      <div style="display:flex; justify-content:center; gap:10px; margin-bottom:20px; font-size:36px" id="reviewStars">
+        <span style="cursor:pointer;color:#cbd5e1" onclick="setReviewRating(1)">★</span>
+        <span style="cursor:pointer;color:#cbd5e1" onclick="setReviewRating(2)">★</span>
+        <span style="cursor:pointer;color:#cbd5e1" onclick="setReviewRating(3)">★</span>
+        <span style="cursor:pointer;color:#cbd5e1" onclick="setReviewRating(4)">★</span>
+        <span style="cursor:pointer;color:#cbd5e1" onclick="setReviewRating(5)">★</span>
+      </div>
+
+      <div class="form-field" style="text-align:left">
+        <label class="form-label">Write a review (optional)</label>
+        <textarea class="form-input" id="reviewText" rows="3" placeholder="How was your parking experience?" style="resize:none"></textarea>
+      </div>
+    </div>
+    <div style="padding:16px 20px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:10px">
+      <button class="btn btn-primary" onclick="submitReview()">Submit Review</button>
+      <button class="btn btn-outline" style="color:var(--text-muted);border-color:var(--border)" onclick="closeModal('reviewModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Slot Picker Modal -->
+<div class="modal-backdrop" id="slotModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🅿️ Select a Slot</div>
+    <div style="padding:0 20px 8px">
+      <div class="slot-legend">
+        <div class="slot-leg-item"><div class="slot-leg-dot" style="background:var(--green-light);border:1px solid var(--green)"></div>Available</div>
+        <div class="slot-leg-item"><div class="slot-leg-dot" style="background:var(--red-light);border:1px solid var(--red)"></div>Occupied</div>
+        <div class="slot-leg-item"><div class="slot-leg-dot" style="background:var(--ev-light);border:1px solid var(--ev)"></div>EV</div>
+        <div class="slot-leg-item"><div class="slot-leg-dot" style="background:var(--blue);border:1px solid var(--blue)"></div>Selected</div>
+      </div>
+      <div class="slot-grid" id="slotGrid"></div>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" id="confirmSlotBtn" onclick="confirmSlot()">Confirm Slot</button>
+      <button class="btn btn-outline" style="background:transparent;border:1.5px solid var(--border);color:var(--text-muted)" onclick="closeModal('slotModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: SPLASH
+══════════════════════════════════════════════════════ -->
+<div class="screen active" id="splash">
+  <div class="splash-grid"></div>
+  <div class="splash-logo-wrap">
+    <div class="splash-icon">
+      <svg width="48" height="48" fill="none" viewBox="0 0 48 48">
+        <path d="M24 4C15.2 4 8 11.2 8 20c0 11 16 28 16 28s16-17 16-28c0-8.8-7.2-16-16-16z" fill="white" opacity="0.9"/>
+        <text x="24" y="26" text-anchor="middle" font-size="14" font-weight="900" fill="#2563eb" font-family="sans-serif">P</text>
+      </svg>
+    </div>
+    <div class="splash-wordmark">Park<span>Link</span></div>
+    <div class="splash-tagline">Smart Parking · India</div>
+  </div>
+  <div class="splash-loader">
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ONBOARDING
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="onboarding">
+  <div class="ob-wrap" id="obWrap">
+    <!-- Slide 1 -->
+    <div class="ob-slide">
+      <svg class="ob-art" viewBox="0 0 240 180">
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+        <rect x="30" y="60" width="180" height="90" rx="14" fill="url(#g1)" opacity="0.1"/>
+        <rect x="50" y="75" width="140" height="60" rx="10" fill="#2563eb" opacity="0.15"/>
+        <rect x="70" y="90" width="40" height="30" rx="6" fill="#2563eb" opacity="0.5"/>
+        <rect x="130" y="90" width="40" height="30" rx="6" fill="#10b981" opacity="0.5"/>
+        <circle cx="120" cy="40" r="22" fill="#2563eb"/>
+        <text x="120" y="47" text-anchor="middle" font-size="22" fill="white">🅿️</text>
+        <path d="M120 62 L120 78" stroke="#2563eb" stroke-width="3" stroke-dasharray="4,3"/>
+        <circle cx="80" cy="100" r="6" fill="white"/>
+        <circle cx="160" cy="100" r="6" fill="white"/>
+      </svg>
+      <div class="ob-badge">New in India</div>
+      <div class="ob-title" style="color:white">Find Parking<br>in Seconds</div>
+      <div class="ob-desc">Discover available parking spots near you in real-time. No more circling blocks.</div>
+    </div>
+    <!-- Slide 2 -->
+    <div class="ob-slide">
+      <svg class="ob-art" viewBox="0 0 240 180">
+        <circle cx="120" cy="90" r="60" fill="#8b5cf6" opacity="0.1"/>
+        <circle cx="120" cy="90" r="40" fill="#8b5cf6" opacity="0.15"/>
+        <text x="120" y="100" text-anchor="middle" font-size="42">⚡</text>
+        <rect x="60" y="140" width="120" height="28" rx="8" fill="#8b5cf6" opacity="0.2"/>
+        <text x="120" y="159" text-anchor="middle" font-size="13" fill="#8b5cf6" font-weight="700">EV CHARGING READY</text>
+      </svg>
+      <div class="ob-badge" style="color:#8b5cf6;border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.1)">EV Ready</div>
+      <div class="ob-title" style="color:white">Book & Pay<br>Instantly</div>
+      <div class="ob-desc">Reserve your spot before you arrive. EV charging stations included across all lots.</div>
+    </div>
+    <!-- Slide 3 -->
+    <div class="ob-slide">
+      <svg class="ob-art" viewBox="0 0 240 180">
+        <rect x="60" y="40" width="120" height="150" rx="16" fill="#1e293b"/>
+        <rect x="68" y="55" width="104" height="125" rx="10" fill="#0f172a"/>
+        <rect x="80" y="70" width="80" height="80" rx="8" fill="white" opacity="0.08"/>
+        <text x="120" y="118" text-anchor="middle" font-size="36">🎫</text>
+        <rect x="80" y="157" width="80" height="8" rx="4" fill="#2563eb" opacity="0.5"/>
+        <circle cx="120" cy="192" r="4" fill="#64748b"/>
+      </svg>
+      <div class="ob-badge" style="color:#10b981;border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.1)">Digital Ticket</div>
+      <div class="ob-title" style="color:white">QR Ticket &<br>Easy Exit</div>
+      <div class="ob-desc">Get a digital QR ticket instantly. Show at entry/exit — no paper, no hassle.</div>
+    </div>
+  </div>
+  <div class="ob-dots" id="obDots">
+    <div class="ob-dot active"></div>
+    <div class="ob-dot"></div>
+    <div class="ob-dot"></div>
+  </div>
+  <div class="ob-nav">
+    <button class="btn btn-outline" style="flex:0.4;font-size:14px" id="obSkip" onclick="goTo('login')">Skip</button>
+    <button class="btn btn-primary" id="obNext" onclick="obNextSlide()">Next →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: LOGIN
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="login">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <!-- City skyline SVG -->
+  <svg class="login-city-lines" viewBox="0 0 390 200" preserveAspectRatio="none">
+    <path d="M0,200 L0,120 L20,120 L20,80 L35,80 L35,60 L50,60 L50,80 L65,80 L65,40 L75,40 L75,20 L85,20 L85,40 L95,40 L95,80 L110,80 L110,100 L125,100 L125,70 L135,70 L135,50 L145,50 L145,70 L160,70 L160,90 L175,90 L175,55 L185,55 L185,35 L195,35 L195,55 L210,55 L210,80 L225,80 L225,60 L235,60 L235,40 L245,40 L245,60 L255,60 L255,90 L270,90 L270,75 L285,75 L285,50 L295,50 L295,75 L305,75 L305,100 L320,100 L320,70 L330,70 L330,55 L345,55 L345,70 L360,70 L360,95 L375,95 L375,110 L390,110 L390,200 Z" fill="white" opacity="0.06"/>
+  </svg>
+  <div class="login-top">
+    <div class="login-icon">
+      <svg width="36" height="36" fill="none" viewBox="0 0 48 48">
+        <path d="M24 4C15.2 4 8 11.2 8 20c0 11 16 28 16 28s16-17 16-28c0-8.8-7.2-16-16-16z" fill="white"/>
+        <text x="24" y="26" text-anchor="middle" font-size="14" font-weight="900" fill="#2563eb" font-family="sans-serif">P</text>
+      </svg>
+    </div>
+    <div class="login-brand">Park<span>Link</span></div>
+    <div class="login-brand-sub">Smart Parking · India</div>
+  </div>
+
+  <!-- STEP 1: Main login -->
+  <div class="login-card" id="loginStep1">
+    <div class="role-toggle" id="roleToggle">
+      <button class="role-btn active" onclick="setRole('driver',this)">🚗 Driver</button>
+      <button class="role-btn" onclick="setRole('owner',this)">🏢 Owner</button>
+      <button class="role-btn" onclick="setRole('admin',this)">🛡️ Admin</button>
+    </div>
+    <button class="social-btn" onclick="googleLogin()">
+      <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <button class="social-btn" onclick="appleLogin()">
+      <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      Continue with Apple
+    </button>
+    <div class="divider">or sign in with mobile</div>
+    <label class="inp-lbl">Mobile Number</label>
+    <div class="inp-wrap has-prefix">
+      <span class="inp-prefix">+91</span>
+      <input type="tel" id="mobileInput" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric">
+    </div>
+    <button class="btn btn-primary" onclick="sendOTP()">Send OTP</button>
+  </div>
+
+  <!-- STEP 2: OTP Verification -->
+  <div class="login-card hidden" id="loginStep2">
+    <div style="text-align:center;margin-bottom:8px">
+      <div style="font-size:32px;margin-bottom:8px">📱</div>
+      <div style="font-size:18px;font-weight:800;color:white;margin-bottom:6px">Verify OTP</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.45)" id="otpSentMsg">OTP sent to +91 XXXXXXXXXX</div>
+    </div>
+    <div class="otp-inputs" id="otpInputs">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,0)" onkeydown="otpBack(event,0)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,1)" onkeydown="otpBack(event,1)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,2)" onkeydown="otpBack(event,2)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,3)" onkeydown="otpBack(event,3)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,4)" onkeydown="otpBack(event,4)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,5)" onkeydown="otpBack(event,5)">
+    </div>
+    <div id="otpError" class="hidden" style="text-align:center;font-size:13px;color:#ef4444;margin-bottom:12px">❌ Incorrect OTP. Please try again.</div>
+    <button class="btn btn-primary" onclick="verifyOTP()">Verify & Login</button>
+    <div style="text-align:center;margin-top:14px">
+      <span style="font-size:13px;color:rgba(255,255,255,0.35)" id="resendTimer">Resend OTP in <b id="resendCount">30</b>s</span>
+      <button class="hidden" id="resendBtn" onclick="resendOTP()" style="background:none;border:none;font-family:var(--font);font-size:13px;color:var(--blue-mid);cursor:pointer;font-weight:700">Resend OTP</button>
+    </div>
+    <button onclick="backToMobile()" style="width:100%;margin-top:10px;background:none;border:none;font-family:var(--font);font-size:13px;color:rgba(255,255,255,0.4);cursor:pointer;">← Change number</button>
+  </div>
+
+  <div class="login-footer">By continuing, you agree to ParkLink's Terms of Service & Privacy Policy</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: HOME (MAP + LIST)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="home">
+  <div class="home-header">
+    <div class="home-top">
+      <div class="home-greeting">
+        <div class="home-hi">Good morning,</div>
+        <div class="home-name" id="homeUserName">Arun Kumar 👋</div>
+      </div>
+      <button class="btn-icon" onclick="goTo('profile')">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#2563eb,#8b5cf6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:14px" id="homeAvatar">A</div>
+      </button>
+    </div>
+    <div class="search-bar">
+      <svg width="18" height="18" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search for parking, area…" oninput="onSearch(this.value)" onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()" style="background:rgba(37,99,235,0.6);border:none;border-radius:8px;padding:6px 10px;color:white;font-size:12px;font-weight:700;cursor:pointer;">GO</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 16px 0;flex-shrink:0;overflow-x:auto" class="filters-row">
+    <div class="view-toggle">
+      <button class="view-btn active" id="mapViewBtn" onclick="switchView('map')">🗺 Map</button>
+      <button class="view-btn" id="listViewBtn" onclick="switchView('list')">☰ List</button>
+    </div>
+    <div class="filter-chip active" onclick="filterParks('all',this)">All</div>
+    <div class="filter-chip" onclick="filterParks('nearest',this)">📍 Nearest</div>
+    <div class="filter-chip" onclick="filterParks('cheapest',this)">💰 Cheapest</div>
+    <div class="filter-chip" onclick="filterParks('available',this)">✅ Available</div>
+    <div class="filter-chip" onclick="filterParks('ev',this)">⚡ EV</div>
+    <div class="filter-chip" onclick="filterParks('cctv',this)">📹 CCTV</div>
+  </div>
+
+  <!-- MAP VIEW -->
+  <div id="mapView" style="flex:1;position:relative;overflow:hidden">
+    <div id="map-container" style="width:100%;height:100%;position:relative;overflow:hidden">
+      <!-- Simulated India map -->
+      <div style="width:100%;height:100%;background:linear-gradient(160deg,#e8f0fe 0%,#dde8ff 100%);position:relative" id="simMap">
+        <!-- Roads -->
+        <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.25" viewBox="0 0 390 580" preserveAspectRatio="none">
+          <path d="M50,100 Q150,120 200,200 Q250,280 300,350 Q340,400 380,420" stroke="#94a3b8" stroke-width="3" fill="none"/>
+          <path d="M0,200 Q100,210 195,250 Q280,290 390,300" stroke="#94a3b8" stroke-width="2" fill="none"/>
+          <path d="M100,0 Q120,150 130,280 Q140,400 150,580" stroke="#94a3b8" stroke-width="2" fill="none"/>
+          <path d="M0,350 Q120,330 200,340 Q300,350 390,360" stroke="#cbd5e1" stroke-width="1.5" fill="none"/>
+          <path d="M200,0 Q210,100 220,200 Q225,300 230,580" stroke="#cbd5e1" stroke-width="1.5" fill="none"/>
+        </svg>
+        <!-- Location markers -->
+        <div id="mapMarkers"></div>
+        <!-- Popup -->
+        <div id="mapPopup" class="map-popup hidden" style="top:30%;left:50%;transform:translateX(-50%)"></div>
+        <!-- My location btn -->
+        <button class="map-loc-btn" onclick="centerMap()" title="My location">
+          <svg width="22" height="22" fill="none" stroke="#2563eb" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="#2563eb"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        </button>
+        <!-- Legend -->
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Limited</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Full</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ev)"></div>EV</div>
+        </div>
+        <!-- Map label -->
+        <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px">📍 MADURAI, TN</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div id="listView" class="scroll-body hidden" style="flex:1;padding:14px 14px 80px">
+    <div id="parkList"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('home')">
+      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <div class="nav-item-wrap">
+      <button class="nav-item" onclick="goTo('bookings','anim-in')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span class="nav-label">Bookings</span>
+      </button>
+      <div class="notif-badge" id="bookingNotif"></div>
+    </div>
+    <button class="nav-item" onclick="goTo('profile','anim-in')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="nav-label">Profile</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: PARK DETAIL
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="detail">
+  <div class="detail-hero" id="detailHero">
+    <div class="detail-hero-icon" id="detailEmoji">🏢</div>
+    <div class="detail-hero-overlay"></div>
+    <button class="btn-icon detail-back" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2)" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="detail-hero-info">
+      <div class="detail-hero-name" id="detailName">Meenakshi Temple Parking</div>
+      <div class="detail-hero-addr">
+        <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+        <span id="detailAddr">South Veli Street, Madurai</span>
+      </div>
+    </div>
+  </div>
+  <div class="detail-stats">
+    <div class="dstat">
+      <div class="dstat-val" id="dStatAvail">22</div>
+      <div class="dstat-lbl">Available</div>
+    </div>
+    <div class="dstat">
+      <div class="dstat-val" id="dStatTotal">60</div>
+      <div class="dstat-lbl">Total</div>
+    </div>
+    <div class="dstat">
+      <div class="dstat-val" id="dStatPrice">₹25</div>
+      <div class="dstat-lbl">Per Hour</div>
+    </div>
+    <div class="dstat">
+      <div class="dstat-val" id="dStatDist">1.2</div>
+      <div class="dstat-lbl">km Away</div>
+    </div>
+  </div>
+  <div class="scroll-body" style="padding:0 14px 14px">
+    <div class="card">
+      <div class="sec-title" style="font-size:15px">Amenities</div>
+      <div class="amenity-grid" id="amenityGrid"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title" style="font-size:15px">Opening Hours</div>
+      <div id="hoursInfo" style="font-size:14px;color:var(--text-2);line-height:1.7"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title" style="font-size:15px">Reviews</div>
+      <div id="reviewsList"></div>
+    </div>
+  </div>
+  <div class="detail-cta">
+    <button class="btn btn-outline" style="flex:0.45;background:var(--blue-light);color:var(--blue);border:none" onclick="navigate()">🧭 Navigate</button>
+    <button class="btn btn-primary" onclick="startBooking()">Book Now →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: BOOKING
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="booking">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Book Parking</div>
+  </div>
+  <div class="step-bar" id="stepBar">
+    <div class="step-item active" id="step-1"><div class="step-num">1</div><div class="step-lbl">Vehicle</div></div>
+    <div class="step-item" id="step-2"><div class="step-num">2</div><div class="step-lbl">Duration</div></div>
+    <div class="step-item" id="step-3"><div class="step-num">3</div><div class="step-lbl">Confirm</div></div>
+  </div>
+  <div class="scroll-body" id="bookingBody" style="padding:16px 14px 20px">
+    <!-- Step 1 content injected dynamically -->
+  </div>
+  <div style="padding:14px;flex-shrink:0;background:var(--card);border-top:1px solid var(--border)">
+    <button class="btn btn-primary" id="bookingNextBtn" onclick="bookingNext()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: QR TICKET
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="qr-ticket">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('home')">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Parking Ticket</div>
+    <button onclick="shareTicket()" style="background:none;border:none;font-size:13px;font-weight:700;color:var(--blue);cursor:pointer">Share</button>
+  </div>
+  <div class="scroll-body" style="padding:16px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:var(--green-light);border-radius:100px;font-size:14px;font-weight:700;color:var(--green)">
+        ✓ Booking Confirmed!
+      </div>
+    </div>
+    <div class="ticket-wrap">
+      <div class="ticket" id="ticketCard">
+        <div class="ticket-header">
+          <div class="ticket-brand">ParkLink · Digital Ticket</div>
+          <div class="ticket-parking-name" id="tParkName">Meenakshi Temple Parking</div>
+          <div class="ticket-id" id="tBookingId">BKG-2025-001234</div>
+        </div>
+        <div class="ticket-separator">
+          <div class="ticket-notch"></div>
+          <div class="ticket-separator-line"></div>
+          <div class="ticket-notch"></div>
+        </div>
+        <div class="ticket-body">
+          <div class="ticket-row">
+            <div><div class="ticket-field-lbl">Slot</div><div class="ticket-field-val" id="tSlot">B-07</div></div>
+            <div><div class="ticket-field-lbl">Vehicle</div><div class="ticket-field-val" id="tVehicle">TN 59 AB 1234</div></div>
+          </div>
+          <div class="ticket-row">
+            <div><div class="ticket-field-lbl">Entry</div><div class="ticket-field-val" id="tEntry">10:30 AM</div></div>
+            <div><div class="ticket-field-lbl">Exit</div><div class="ticket-field-val" id="tExit">12:30 PM</div></div>
+          </div>
+          <div class="ticket-row">
+            <div><div class="ticket-field-lbl">Duration</div><div class="ticket-field-val" id="tDuration">2 Hours</div></div>
+            <div><div class="ticket-field-lbl">Amount</div><div class="ticket-field-val" id="tAmount" style="color:var(--blue);font-size:18px">₹50</div></div>
+          </div>
+        </div>
+        <div class="ticket-qr-section">
+          <div id="qr-canvas"></div>
+          <div class="ticket-qr-hint">Scan this QR at entry/exit gate</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" onclick="goTo('session','anim-in')">▶ Start Parking Session</button>
+      <button class="btn" style="background:var(--surface);color:var(--text-muted)" onclick="downloadTicket()">⬇ Download Ticket</button>
+      <button class="btn" style="background:var(--surface);color:var(--text-muted)" onclick="goTo('home')">← Back to Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ACTIVE SESSION
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="session">
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="timerGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#3b82f6"/>
+        <stop offset="1" stop-color="#8b5cf6"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="top-bar" style="background:transparent;border-bottom:1px solid rgba(255,255,255,0.1)">
+    <button class="back-btn" style="background:rgba(255,255,255,0.1)" onclick="confirmEndParking()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title" style="color:white">Active Session</div>
+    <button onclick="goTo('qr-ticket','anim-in')" style="background:none;border:none;font-size:12px;font-weight:700;color:rgba(255,255,255,0.5);cursor:pointer">View Ticket</button>
+  </div>
+  <div class="scroll-body" style="padding-bottom:20px">
+    <div class="session-hero">
+      <div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:4px" id="sessionParkName">Meenakshi Temple Parking</div>
+      <div class="session-timer-wrap">
+        <svg class="session-timer-svg" viewBox="0 0 200 200">
+          <circle class="timer-bg" cx="100" cy="100" r="88"/>
+          <circle class="timer-progress" id="timerCircle" cx="100" cy="100" r="88" stroke-dasharray="552.9" stroke-dashoffset="0"/>
+        </svg>
+        <div class="session-timer-center">
+          <div class="session-time-big" id="timerDisplay">00:00</div>
+          <div class="session-time-lbl">Elapsed</div>
+        </div>
+      </div>
+      <div class="session-status">
+        <div class="session-status-dot"></div>
+        <div class="session-status-text">Parking Active</div>
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.4)" id="sessionTimeRemain">Expires at 12:30 PM</div>
+    </div>
+    <div class="session-info-strip">
+      <div class="sinfo"><div class="sinfo-val" id="sSlot">B-07</div><div class="sinfo-lbl">Slot</div></div>
+      <div class="sinfo"><div class="sinfo-val" id="sVehicle">CAR</div><div class="sinfo-lbl">Type</div></div>
+      <div class="sinfo"><div class="sinfo-val" id="sRemain">2:00</div><div class="sinfo-lbl">Remaining</div></div>
+    </div>
+    <div class="session-actions" style="margin-top:16px">
+      <button class="sact-btn" onclick="navigate()"><div class="sact-icon">🧭</div><div class="sact-lbl">Navigate</div></button>
+      <button class="sact-btn" onclick="extendParking()"><div class="sact-icon">⏱️</div><div class="sact-lbl">Extend Time</div></button>
+      <button class="sact-btn" onclick="openCCTV()"><div class="sact-icon">📹</div><div class="sact-lbl">Live CCTV</div></button>
+      <button class="sact-btn" onclick="openSplit()"><div class="sact-icon">💰</div><div class="sact-lbl">Split Cost</div></button>
+      <button class="sact-btn" onclick="toast('Security notified','info','🛡️')"><div class="sact-icon">🛡️</div><div class="sact-lbl">Security</div></button>
+      <button class="sact-btn" onclick="goTo('qr-ticket','anim-in')"><div class="sact-icon">🎫</div><div class="sact-lbl">My Ticket</div></button>
+      <button class="sact-btn" onclick="openLastMile()"><div class="sact-icon">🛺</div><div class="sact-lbl">Last Mile</div></button>
+      <button class="sact-btn" onclick="openWABot()"><div class="sact-icon">💬</div><div class="sact-lbl">WA Bot</div></button>
+    </div>
+    <div class="session-end">
+      <button class="btn btn-danger" onclick="confirmEndParking()" style="font-size:16px;padding:18px">⏹ End Parking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: BOOKINGS
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="bookings">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">My Bookings</div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showBookingTab('active',this)">Active</button>
+    <button class="tab-btn" onclick="showBookingTab('upcoming',this)">Upcoming</button>
+    <button class="tab-btn" onclick="showBookingTab('history',this)">History</button>
+  </div>
+  <div class="scroll-body" style="padding:14px 14px 80px" id="bookingsList"></div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="goTo('home')">
+      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item active" onclick="goTo('bookings')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span class="nav-label">Bookings</span>
+    </button>
+    <button class="nav-item" onclick="goTo('profile','anim-in')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="nav-label">Profile</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: PROFILE
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="profile">
+  <div class="scroll-body">
+    <div class="profile-hero">
+      <div class="profile-avatar" id="profileAvatar">A</div>
+      <div class="profile-name" id="profileName">Arun Kumar</div>
+      <div class="profile-phone" id="profilePhone">+91 98765 43210</div>
+    </div>
+    <div class="profile-stats">
+      <div class="pstat"><div class="pstat-val">12</div><div class="pstat-lbl">Trips</div></div>
+      <div class="pstat"><div class="pstat-val">8.5</div><div class="pstat-lbl">Hours</div></div>
+      <div class="pstat"><div class="pstat-val">4.9★</div><div class="pstat-lbl">Rating</div></div>
+    </div>
+    <div class="menu-section">
+      <div class="menu-section-title">My Account</div>
+      <div class="menu-item" onclick="openVehicleModal()">
+        <div class="menu-icon">🚗</div><div class="menu-label">My Vehicles</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="goTo('bookings','anim-in')">
+        <div class="menu-icon">🎫</div><div class="menu-label">Booking History</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="openWallet()">
+        <div class="menu-icon">💳</div><div class="menu-label">My Wallet <span id="profileWalletBadge" style="margin-left:8px;font-size:11px;background:var(--blue-light);color:var(--blue);padding:2px 6px;border-radius:10px;font-weight:700">₹250</span></div><div class="menu-arrow">›</div>
+      </div>
+    </div>
+
+    <!-- ── NEW FEATURES SECTION ── -->
+    <div class="menu-section">
+      <div class="menu-section-title">✨ Smart Features</div>
+      <div class="menu-item" onclick="openWABot()" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #bbf7d0">
+        <div class="menu-icon" style="background:#dcfce7;font-size:20px">💬</div>
+        <div><div class="menu-label" style="color:#065f46">WhatsApp Booking</div><div style="font-size:11px;color:#16a34a;font-weight:600">Book without installing the app</div></div>
+        <div style="font-size:10px;background:#16a34a;color:white;padding:3px 8px;border-radius:100px;font-weight:700">NEW</div>
+      </div>
+      <div class="menu-item" onclick="openSurge()" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1.5px solid #fed7aa">
+        <div class="menu-icon" style="background:#ffedd5;font-size:20px">🪔</div>
+        <div><div class="menu-label" style="color:#7c2d12">Festival Surge Forecast</div><div style="font-size:11px;color:#b45309;font-weight:600">See parking demand for next 7 days</div></div>
+        <div style="font-size:10px;background:#b45309;color:white;padding:3px 8px;border-radius:100px;font-weight:700">SMART</div>
+      </div>
+      <div class="menu-item" onclick="openSplit()" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid #ddd6fe">
+        <div class="menu-icon" style="background:#ede9fe;font-size:20px">💰</div>
+        <div><div class="menu-label" style="color:#3730a3">Split Parking</div><div style="font-size:11px;color:#6d28d9;font-weight:600">Split cost with your carpool buddy</div></div>
+        <div style="font-size:10px;background:#7c3aed;color:white;padding:3px 8px;border-radius:100px;font-weight:700">BETA</div>
+      </div>
+      <div class="menu-item" onclick="openCCTV()" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #bbf7d0">
+        <div class="menu-icon" style="background:#0a0f1e;font-size:20px">📹</div>
+        <div><div class="menu-label">Live CCTV View</div><div style="font-size:11px;color:var(--text-muted);font-weight:600">Watch your vehicle in real-time</div></div>
+        <div style="font-size:10px;background:var(--blue);color:white;padding:3px 8px;border-radius:100px;font-weight:700">LIVE</div>
+      </div>
+      <div class="menu-item" onclick="openLastMile()" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #bfdbfe">
+        <div class="menu-icon" style="background:#dbeafe;font-size:20px">🛺</div>
+        <div><div class="menu-label" style="color:#1e40af">Last Mile Ride</div><div style="font-size:11px;color:#2563eb;font-weight:600">Book Ola/Rapido from your parking</div></div>
+        <div style="font-size:10px;background:#2563eb;color:white;padding:3px 8px;border-radius:100px;font-weight:700">SMART</div>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">Preferences</div>
+      <div class="menu-item" onclick="openSettings('🔔 Notifications')">
+        <div class="menu-icon">🔔</div><div class="menu-label">Notifications</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="openSettings('🌐 Language & Region')">
+        <div class="menu-icon">🌐</div><div class="menu-label">Language & Region</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="toggleDarkMode()" style="cursor:pointer">
+        <div class="menu-icon">🌙</div>
+        <div class="menu-label">Dark Mode</div>
+        <button class="theme-switch" id="darkModeSwitch">
+          <div class="theme-switch-knob"></div>
+        </button>
+      </div>
+    </div>
+    <div class="menu-section" id="ownerMenuSection">
+      <div class="menu-section-title">Owner Tools</div>
+      <div class="menu-item" onclick="goTo('owner','anim-in')">
+        <div class="menu-icon">📊</div><div class="menu-label">Owner Dashboard</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="goTo('add-parking','anim-in')">
+        <div class="menu-icon">➕</div><div class="menu-label">Add Parking Lot</div><div class="menu-arrow">›</div>
+      </div>
+    </div>
+    <div class="menu-section" id="adminMenuSection" style="display:none">
+      <div class="menu-section-title">Admin</div>
+      <div class="menu-item" onclick="goTo('admin','anim-in')">
+        <div class="menu-icon">🛡️</div><div class="menu-label">Admin Panel</div><div class="menu-arrow">›</div>
+      </div>
+    </div>
+    <div class="menu-section">
+      <div class="menu-item danger" onclick="signOut()">
+        <div class="menu-icon">🚪</div><div class="menu-label">Sign Out</div>
+      </div>
+    </div>
+    <div style="height:40px"></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="goTo('home')">
+      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" onclick="goTo('bookings','anim-in')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span class="nav-label">Bookings</span>
+    </button>
+    <button class="nav-item active" onclick="goTo('profile')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="nav-label">Profile</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: OWNER DASHBOARD
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="owner">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Owner Dashboard</div>
+    <button onclick="goTo('add-parking','anim-in')" style="background:var(--blue);border:none;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:700;color:white;cursor:pointer">+ Add</button>
+  </div>
+  <div class="scroll-body" style="padding-bottom:20px">
+    <div class="owner-hero">
+      <div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.5)">Welcome back,</div>
+      <div style="font-size:22px;font-weight:800;color:white" id="ownerName">Rajesh Kumar</div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Available Slots</div><div class="kpi-value" id="ownerAvail">42</div><div class="kpi-trend up">↑ 8 from yesterday</div></div>
+        <div class="kpi-card"><div class="kpi-label">Active Bookings</div><div class="kpi-value" id="ownerActive">18</div><div class="kpi-trend warn">3 expiring soon</div></div>
+        <div class="kpi-card"><div class="kpi-label">Today's Revenue</div><div class="kpi-value" id="ownerRevenue">₹1,840</div><div class="kpi-trend up">↑ 12% vs yesterday</div></div>
+        <div class="kpi-card"><div class="kpi-label">Occupancy</div><div class="kpi-value" id="ownerOccupancy">68%</div><div class="kpi-trend up">Peak hours: 6–9 PM</div></div>
+      </div>
+    </div>
+    <div style="padding:16px">
+      <div class="card">
+        <div class="sec-title" style="font-size:15px;margin-bottom:16px">🔴 Live Bookings</div>
+        <div id="livBookingsList"></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="sec-title" style="font-size:15px;margin-bottom:16px">🏢 My Parking Lots</div>
+        <div id="ownerLotsList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ADD PARKING
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="add-parking">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Add Parking Lot</div>
+  </div>
+  <div class="scroll-body" style="padding:14px 14px 80px">
+    <div class="form-section">
+      <div class="form-section-title"><span>📍</span> Basic Info</div>
+      <div class="form-field"><label class="form-label">Parking Name</label><input type="text" class="form-input" placeholder="e.g. Sri Meenakshi Parking" id="fpName"></div>
+      <div class="form-field"><label class="form-label">Address</label><input type="text" class="form-input" placeholder="Full address with landmark" id="fpAddr"></div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">City</label><input type="text" class="form-input" placeholder="Madurai" id="fpCity"></div>
+        <div class="form-field"><label class="form-label">PIN Code</label><input type="text" class="form-input" placeholder="625001" id="fpPin" inputmode="numeric"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title"><span>🅿️</span> Capacity & Pricing</div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">Car Slots</label><input type="number" class="form-input" placeholder="50" id="fpCarSlots"></div>
+        <div class="form-field"><label class="form-label">Bike Slots</label><input type="number" class="form-input" placeholder="30" id="fpBikeSlots"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">EV Slots</label><input type="number" class="form-input" placeholder="10" id="fpEvSlots"></div>
+        <div class="form-field"><label class="form-label">Hourly Rate (₹)</label><input type="number" class="form-input" placeholder="30" id="fpHourly"></div>
+      </div>
+      <div class="form-field"><label class="form-label">Daily Rate (₹)</label><input type="number" class="form-input" placeholder="200" id="fpDaily"></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title"><span>✅</span> Amenities</div>
+      <div class="toggle-grid" id="amenityToggles">
+        <div class="toggle-item" onclick="toggleAmenity(this,'cctv')"><div class="toggle-check"></div><div class="toggle-label">📹 CCTV</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'security')"><div class="toggle-check"></div><div class="toggle-label">👮 24hr Security</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'ev')"><div class="toggle-check"></div><div class="toggle-label">⚡ EV Charging</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'covered')"><div class="toggle-check"></div><div class="toggle-label">🏠 Covered</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'wheelchair')"><div class="toggle-check"></div><div class="toggle-label">♿ Wheelchair</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'prebook')"><div class="toggle-check"></div><div class="toggle-label">📅 Pre-booking</div></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title"><span>🕐</span> Operating Hours</div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">Open Time</label><input type="time" class="form-input" value="06:00" id="fpOpen"></div>
+        <div class="form-field"><label class="form-label">Close Time</label><input type="time" class="form-input" value="23:00" id="fpClose"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitParkingForm()" style="margin-top:4px">Submit for Verification</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ADMIN PANEL
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="admin">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Admin Panel</div>
+  </div>
+  <div class="scroll-body" style="padding-bottom:20px">
+    <div class="admin-stat-grid">
+      <div class="astat" style="border-color:var(--blue)"><div class="astat-val">1,248</div><div class="astat-lbl">Total Parks</div></div>
+      <div class="astat" style="border-color:var(--green)"><div class="astat-val">89,420</div><div class="astat-lbl">Total Users</div></div>
+      <div class="astat" style="border-color:var(--amber)"><div class="astat-val">₹4.2L</div><div class="astat-lbl">Today Revenue</div></div>
+      <div class="astat" style="border-color:var(--ev)"><div class="astat-val">72%</div><div class="astat-lbl">Avg Occupancy</div></div>
+    </div>
+    <div style="padding:0 16px 16px">
+      <div class="card">
+        <div class="sec-title" style="font-size:15px;margin-bottom:16px">📊 City-wise Utilization</div>
+        <div id="cityBars"></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="sec-title" style="font-size:15px;margin-bottom:16px">⏳ Pending Verifications</div>
+        <div id="pendingVerify"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: WHATSAPP BOOKING BOT  (Feature 1)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="whatsapp-bot">
+  <div class="wa-header top-bar cctv-header" style="background:linear-gradient(135deg,#075E54,#128C7E);border:none;height:auto;padding:14px 16px">
+    <button class="back-btn" style="background:rgba(255,255,255,0.15)" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="wa-avatar">🤖</div>
+    <div style="flex:1">
+      <div class="wa-title">ParkLink Bot</div>
+      <div class="wa-status"><span style="width:7px;height:7px;border-radius:50%;background:#25D366;display:inline-block"></span> Online</div>
+    </div>
+    <button onclick="openSettings('⚙️ Bot Settings')" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:20px;cursor:pointer">⋮</button>
+  </div>
+
+  <div class="wa-chat" id="waChat">
+    <!-- Populated by JS -->
+  </div>
+
+  <div style="background:#F0F0F0;padding:6px 10px 0;flex-shrink:0" id="waQuickReplies">
+    <!-- Quick reply chips -->
+  </div>
+
+  <div class="wa-input-bar">
+    <textarea class="wa-input" id="waInput" placeholder="Type a message…" rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();waSend()}"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+    <button class="wa-send" onclick="waSend()">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: FESTIVAL SURGE PREDICTION  (Feature 2)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="surge">
+  <div class="top-bar" style="background:linear-gradient(135deg,#7c2d12,#b45309);border:none">
+    <button class="back-btn" style="background:rgba(255,255,255,0.15)" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title" style="color:white">Festival Surge Forecast</div>
+    <button onclick="toast('Alerts enabled for upcoming events','success','🔔')" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;padding:7px 10px;color:white;font-size:12px;cursor:pointer">🔔 Alert</button>
+  </div>
+  <div class="scroll-body" style="padding-bottom:20px">
+    <div class="surge-hero">
+      <div class="surge-badge">🗓️ Next 7 Days · Madurai Region</div>
+      <div class="surge-title">Parking Demand<br>Forecast</div>
+      <div class="surge-sub">Book early — festival crowds fill lots 3–4 hrs before events</div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="surge-timeline">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px">📅 Upcoming Events</div>
+      <div id="surgeTimeline"></div>
+    </div>
+
+    <!-- Forecast cards -->
+    <div style="padding:0 16px 16px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:12px">🔥 High-Demand Alerts</div>
+      <div id="forecastCards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: SPLIT PARKING  (Feature 3)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="split">
+  <div class="top-bar" style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:none">
+    <button class="back-btn" style="background:rgba(255,255,255,0.15)" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title" style="color:white">Split Parking</div>
+    <span class="badge badge-ev" style="font-size:11px">Beta</span>
+  </div>
+  <div class="scroll-body" style="padding:14px 14px 80px">
+
+    <!-- Active split card -->
+    <div class="split-active-card" id="splitActiveCard">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Current Booking to Split</div>
+      <div style="font-size:17px;font-weight:800;color:white;margin-bottom:3px" id="splitParkName">Select a booking first</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:16px" id="splitBookingMeta">No active booking</div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;margin-bottom:4px">Total Amount</div>
+          <div style="font-size:24px;font-weight:800;color:white;font-family:var(--font-mono)" id="splitTotalAmt">₹0</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;margin-bottom:4px">Your Share</div>
+          <div style="font-size:24px;font-weight:800;color:#a5b4fc;font-family:var(--font-mono)" id="splitYourShare">₹0</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;margin-bottom:4px">Their Share</div>
+          <div style="font-size:24px;font-weight:800;color:#86efac;font-family:var(--font-mono)" id="splitTheirShare">₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contacts -->
+    <div style="font-size:15px;font-weight:800;margin-bottom:10px;margin-top:4px">Select Carpool Partner</div>
+    <div id="splitContacts"></div>
+
+    <!-- UPI method -->
+    <div style="font-size:15px;font-weight:800;margin-bottom:10px;margin-top:16px">Pay via</div>
+    <div class="split-upi-row">
+      <div class="upi-btn selected" onclick="selectUPI(this,'gpay')"><div class="upi-icon">🅖</div><div class="upi-name">GPay</div></div>
+      <div class="upi-btn" onclick="selectUPI(this,'phonepe')"><div class="upi-icon">💜</div><div class="upi-name">PhonePe</div></div>
+      <div class="upi-btn" onclick="selectUPI(this,'paytm')"><div class="upi-icon">💙</div><div class="upi-name">Paytm</div></div>
+      <div class="upi-btn" onclick="selectUPI(this,'upi')"><div class="upi-icon">🏦</div><div class="upi-name">UPI ID</div></div>
+    </div>
+
+    <!-- Send request -->
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" style="background:linear-gradient(135deg,#4338ca,#7c3aed);box-shadow:0 8px 24px rgba(67,56,202,0.4)" onclick="sendSplitRequest()">
+        📤 Send Split Request via WhatsApp
+      </button>
+      <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:10px">
+        Partner gets a WhatsApp notification to pay their share
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: LIVE CCTV  (Feature 4)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="cctv">
+  <div class="top-bar cctv-header" style="background:#0a0a0a">
+    <button class="back-btn" style="background:#1a1a2e" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title" style="color:white">Live CCTV — <span id="cctvParkLabel" style="color:#00ff41">Anna Nagar Hub</span></div>
+    <div class="cctv-live-badge">
+      <div class="rec-dot"></div>
+      <span style="font-size:10px;color:#ef4444;font-weight:700;font-family:monospace">LIVE</span>
+    </div>
+  </div>
+
+  <div class="cctv-grid" id="cctvGrid">
+    <!-- Feeds populated by JS -->
+  </div>
+
+  <div class="cctv-controls">
+    <div class="cctv-status-bar">
+      <div style="color:rgba(255,255,255,0.5);font-size:11px;font-family:monospace" id="cctvTimestamp">00:00:00 · 4 cameras</div>
+      <div style="color:#00ff41;font-size:11px;font-family:monospace">● SECURE</div>
+    </div>
+    <div class="cctv-btn-row">
+      <button class="cctv-btn" onclick="requestClip()"><div class="cctv-btn-icon">🎬</div>Request Clip</button>
+      <button class="cctv-btn" onclick="cctvSnapshot()"><div class="cctv-btn-icon">📸</div>Snapshot</button>
+      <button class="cctv-btn" onclick="cctvAlert()"><div class="cctv-btn-icon">🚨</div>Alert Guard</button>
+      <button class="cctv-btn" onclick="cctvFullscreen()"><div class="cctv-btn-icon">⛶</div>Full View</button>
+    </div>
+    <div class="cctv-clip-preview" id="clipPreview">
+      <div style="color:white;font-size:13px;font-weight:700;margin-bottom:6px">🎬 Clip Preview — Last 30 sec</div>
+      <div class="clip-timeline">
+        <div class="clip-progress"></div>
+        <div class="clip-markers">
+          <div class="clip-mark"></div><div class="clip-mark"></div><div class="clip-mark"></div>
+          <div class="clip-mark"></div><div class="clip-mark"></div><div class="clip-mark"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-sm" style="background:#1a1a2e;color:white;border:1px solid #2d2d4e;flex:1" onclick="toast('Clip saved to gallery','success','📥')">⬇ Save</button>
+        <button class="btn btn-sm" style="background:#1a1a2e;color:white;border:1px solid #2d2d4e;flex:1" onclick="toast('Clip shared','success','📤')">📤 Share</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: LAST MILE LINK  (Feature 5)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="lastmile">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Last Mile Ride</div>
+    <span class="badge badge-green" style="font-size:11px">Live ETAs</span>
+  </div>
+  <div class="scroll-body" style="padding:14px 14px 80px">
+
+    <!-- Journey preview -->
+    <div class="card-dark" style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">Your Journey</div>
+      <div class="lm-journey">
+        <div class="lm-stop">
+          <div class="lm-stop-dot" style="background:var(--blue)"></div>
+          <div class="lm-stop-label">Parked at</div>
+          <div class="lm-stop-name" id="lmFromName" style="font-size:11px">Anna Nagar Hub</div>
+        </div>
+        <div class="lm-arrow"></div>
+        <div class="lm-stop">
+          <div class="lm-stop-dot" style="background:var(--green)"></div>
+          <div class="lm-stop-label">Going to</div>
+          <div class="lm-stop-name" id="lmToName" style="font-size:11px">Your Destination</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Destination input -->
+    <div class="lm-dest-input">
+      <input class="lm-dest-field" id="lmDestInput" placeholder="🔍 Where are you going?" oninput="lmFilterDest(this.value)">
+    </div>
+
+    <!-- Quick destinations -->
+    <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px">
+      <div class="filter-chip" onclick="setDest('Meenakshi Temple')">🛕 Temple</div>
+      <div class="filter-chip" onclick="setDest('Madurai Airport')">✈️ Airport</div>
+      <div class="filter-chip" onclick="setDest('Periyar Bus Stand')">🚌 Bus Stand</div>
+      <div class="filter-chip" onclick="setDest('Samayanallur')">🏭 IT Park</div>
+      <div class="filter-chip" onclick="setDest('Madurai Junction')">🚆 Railway</div>
+    </div>
+
+    <!-- Map preview -->
+    <div class="lm-map-preview" id="lmMapPreview">
+      <svg class="lm-route-svg" viewBox="0 0 380 130">
+        <path id="lmRoutePath" d="M80,65 Q150,20 200,60 Q250,100 300,45" stroke="#2563eb" stroke-width="3" fill="none" stroke-dasharray="8,4" opacity="0.6"/>
+        <circle cx="80" cy="65" r="6" fill="#2563eb"/>
+        <circle cx="300" cy="45" r="6" fill="#10b981"/>
+      </svg>
+      <div class="lm-from-pin">📍</div>
+      <div class="lm-to-pin" id="lmToPin">📌</div>
+      <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.9);border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--text)" id="lmDistLabel">— Select destination —</div>
+    </div>
+
+    <!-- Cab options -->
+    <div style="font-size:16px;font-weight:800;margin-bottom:10px">Available Rides</div>
+    <div id="cabList"></div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT — FULL BACKEND SIMULATION + LOGIC
+══════════════════════════════════════════════════════ -->
+    <script src="app.js"></script>
+</body>
+</html>
