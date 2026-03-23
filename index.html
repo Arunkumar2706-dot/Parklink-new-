@@ -357,6 +357,20 @@
       <button onclick="doSearch()" style="background:rgba(37,99,235,0.6);border:none;border-radius:8px;padding:6px 10px;color:white;font-size:12px;font-weight:700;cursor:pointer;">GO</button>
     </div>
   </div>
+  <div class="home-stats-bar">
+    <div class="h-stat">
+      <div class="h-stat-value" id="homeTotalParks">0</div>
+      <div class="h-stat-label">Total Parks</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-value" id="homeAvailSpots">0</div>
+      <div class="h-stat-label">Spots Avail</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-value" id="homeLiveUsers">0</div>
+      <div class="h-stat-label">Live Users</div>
+    </div>
+  </div>
   <div style="display:flex;align-items:center;gap:8px;padding:10px 16px 0;flex-shrink:0;overflow-x:auto" class="filters-row">
     <div class="view-toggle">
       <button class="view-btn active" id="mapViewBtn" onclick="switchView('map')">🗺 Map</button>
@@ -517,7 +531,10 @@
       <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
     </button>
     <div class="top-bar-title">Parking Ticket</div>
-    <button onclick="shareTicket()" style="background:none;border:none;font-size:13px;font-weight:700;color:var(--blue);cursor:pointer">Share</button>
+    <div style="display:flex;gap:12px">
+      <button onclick="shareTicket()" style="background:none;border:none;font-size:13px;font-weight:700;color:var(--blue);cursor:pointer">Share</button>
+      <button onclick="emailTicket()" style="background:none;border:none;font-size:13px;font-weight:700;color:var(--blue);cursor:pointer">Email</button>
+    </div>
   </div>
   <div class="scroll-body" style="padding:16px">
     <div style="text-align:center;margin-bottom:16px">
