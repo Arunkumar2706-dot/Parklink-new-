@@ -1,0 +1,3350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<title>ParkLink — Smart Parking India</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- QR Code library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --ink: #0a0f1e;
+  --ink-2: #1e2a45;
+  --ink-3: #2d3d60;
+  --blue: #2563eb;
+  --blue-mid: #3b82f6;
+  --blue-light: #dbeafe;
+  --blue-glow: rgba(37,99,235,0.25);
+  --cyan: #06b6d4;
+  --green: #10b981;
+  --green-light: #d1fae5;
+  --amber: #f59e0b;
+  --amber-light: #fef3c7;
+  --red: #ef4444;
+  --red-light: #fee2e2;
+  --ev: #8b5cf6;
+  --ev-light: #ede9fe;
+  --surface: #f0f4ff;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --border-dark: #cbd5e1;
+  --text: #0f172a;
+  --text-2: #334155;
+  --text-muted: #64748b;
+  --text-hint: #94a3b8;
+  --shadow-xs: 0 1px 3px rgba(0,0,0,0.07);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.09);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.12);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.18);
+  --shadow-blue: 0 8px 32px rgba(37,99,235,0.3);
+  --r: 18px;
+  --r-sm: 12px;
+  --r-xs: 8px;
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'Space Grotesk', sans-serif;
+  --nav-h: 68px;
+  --header-h: 58px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--surface); font-family: var(--font); color: var(--text); -webkit-tap-highlight-color: transparent; font-size: 15px; }
+
+/* ═══════════════════════════════════════════════
+   SCREEN MANAGER
+═══════════════════════════════════════════════ */
+.screen { display: none; flex-direction: column; height: 100vh; overflow: hidden; position: absolute; inset: 0; opacity: 0; }
+.screen.active { display: flex; opacity: 1; }
+.screen.anim-in { animation: screenIn 0.32s cubic-bezier(0.22,1,0.36,1) forwards; }
+.screen.anim-back { animation: screenBack 0.28s cubic-bezier(0.4,0,0.2,1) forwards; }
+@keyframes screenIn { from { transform: translateX(100%); opacity:0; } to { transform: none; opacity:1; } }
+@keyframes screenBack { from { transform: translateX(-25%); opacity:0; } to { transform: none; opacity:1; } }
+
+/* ═══════════════════════════════════════════════
+   SPLASH
+═══════════════════════════════════════════════ */
+#splash {
+  background: linear-gradient(160deg, #060d1f 0%, #0f172a 40%, #1a2744 100%);
+  align-items: center; justify-content: center; gap: 0;
+  position: relative; overflow: hidden;
+}
+#splash::before {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(circle at 30% 20%, rgba(37,99,235,0.3) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(139,92,246,0.2) 0%, transparent 45%);
+}
+.splash-grid {
+  position:absolute; inset:0; opacity:0.06;
+  background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.splash-logo-wrap { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:24px; }
+.splash-icon {
+  width: 96px; height: 96px;
+  background: linear-gradient(135deg, #2563eb, #8b5cf6);
+  border-radius: 28px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 0 rgba(37,99,235,0.5);
+  animation: splashPulse 2.5s ease-in-out infinite;
+}
+@keyframes splashPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.5); }
+  50% { box-shadow: 0 0 0 24px rgba(37,99,235,0); }
+}
+.splash-wordmark { font-family: var(--font); font-size: 38px; font-weight: 800; color: white; letter-spacing: -1.5px; }
+.splash-wordmark span { color: var(--blue-mid); }
+.splash-tagline { font-size: 13px; color: rgba(255,255,255,0.45); letter-spacing: 3px; text-transform: uppercase; font-weight: 500; }
+.splash-loader { position:absolute; bottom: 60px; z-index:2; display:flex; gap:8px; }
+.splash-bar { width: 28px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); overflow:hidden; }
+.splash-bar-fill { height:100%; background: linear-gradient(90deg, #2563eb, #8b5cf6); border-radius:2px; animation: barLoad 2.2s ease-in-out forwards; }
+.splash-bar:nth-child(2) .splash-bar-fill { animation-delay: 0.15s; }
+.splash-bar:nth-child(3) .splash-bar-fill { animation-delay: 0.3s; }
+@keyframes barLoad { from {width:0} to {width:100%} }
+
+/* ═══════════════════════════════════════════════
+   ONBOARDING
+═══════════════════════════════════════════════ */
+#onboarding { background: #060d1f; }
+.ob-wrap { flex:1; display:flex; overflow:hidden; }
+.ob-slide { min-width:100%; padding: 56px 28px 28px; display:flex; flex-direction:column; align-items:center; text-align:center; }
+.ob-art { width:220px; height:180px; margin-bottom:36px; }
+.ob-badge { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:rgba(37,99,235,0.15); border:1px solid rgba(37,99,235,0.3); border-radius:100px; font-size:12px; font-weight:600; color:var(--blue-mid); letter-spacing:1px; text-transform:uppercase; margin-bottom:16px; }
+.ob-title { font-size:28px; font-weight:800; color:white; margin-bottom:14px; line-height:1.2; }
+.ob-desc { font-size:15px; color:rgba(255,255,255,0.5); line-height:1.7; max-width:280px; }
+.ob-dots { display:flex; gap:6px; justify-content:center; padding:20px 0; }
+.ob-dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.2); transition: all 0.3s; }
+.ob-dot.active { width:28px; border-radius:4px; background: linear-gradient(90deg,#2563eb,#8b5cf6); }
+.ob-nav { padding:16px 24px 36px; display:flex; gap:12px; }
+
+/* ═══════════════════════════════════════════════
+   LOGIN — PREMIUM REDESIGN
+═══════════════════════════════════════════════ */
+#login { background: #060d1f; position:relative; overflow:hidden; }
+.login-bg {
+  position:absolute; inset:0; z-index:0;
+  background: linear-gradient(160deg, #060d1f 0%, #0d1b3e 50%, #060d1f 100%);
+}
+.login-bg::before {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(ellipse at 20% 10%, rgba(37,99,235,0.4) 0%, transparent 55%),
+              radial-gradient(ellipse at 80% 85%, rgba(139,92,246,0.3) 0%, transparent 50%),
+              radial-gradient(ellipse at 60% 40%, rgba(6,182,212,0.15) 0%, transparent 45%);
+}
+.login-city-lines {
+  position:absolute; bottom:0; left:0; right:0; height:35%; z-index:1; opacity:0.15;
+}
+.login-grid {
+  position:absolute; inset:0; z-index:1; opacity:0.04;
+  background-image: linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+.login-top { position:relative; z-index:2; padding: 52px 28px 0; display:flex; flex-direction:column; align-items:center; gap:12px; }
+.login-icon {
+  width:72px; height:72px;
+  background: linear-gradient(135deg, #2563eb, #8b5cf6);
+  border-radius:22px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 0 0 12px rgba(37,99,235,0.12), var(--shadow-blue);
+}
+.login-brand { font-size:30px; font-weight:800; color:white; letter-spacing:-1px; }
+.login-brand span { color: var(--blue-mid); }
+.login-brand-sub { font-size:13px; color:rgba(255,255,255,0.4); letter-spacing:2px; text-transform:uppercase; }
+.login-card {
+  position:relative; z-index:2;
+  margin: 28px 16px 0;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
+  padding: 28px 22px;
+  flex:1; overflow-y:auto;
+}
+.role-toggle { display:flex; background:rgba(255,255,255,0.06); border-radius:12px; padding:4px; gap:4px; margin-bottom:24px; }
+.role-btn { flex:1; padding:10px; border:none; border-radius:9px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.25s; background:transparent; color:rgba(255,255,255,0.5); }
+.role-btn.active { background: linear-gradient(135deg, #2563eb, #3b82f6); color:white; box-shadow:0 4px 12px rgba(37,99,235,0.4); }
+.social-btn {
+  width:100%; padding:14px; border: 1px solid rgba(255,255,255,0.12);
+  border-radius:12px; display:flex; align-items:center; justify-content:center; gap:12px;
+  font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer;
+  background:rgba(255,255,255,0.06); color:white; transition:all 0.2s; margin-bottom:10px;
+}
+.social-btn:hover { background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.25); }
+.divider { display:flex; align-items:center; gap:12px; margin:20px 0; color:rgba(255,255,255,0.25); font-size:12px; }
+.divider::before, .divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.12); }
+.inp-lbl { display:block; font-size:12px; font-weight:600; color:rgba(255,255,255,0.5); margin-bottom:7px; letter-spacing:0.5px; text-transform:uppercase; }
+.inp-wrap { position:relative; margin-bottom:14px; }
+.inp-wrap input {
+  width:100%; padding:14px 16px; border: 1px solid rgba(255,255,255,0.12);
+  border-radius:12px; font-family:var(--font); font-size:15px;
+  color:white; background:rgba(255,255,255,0.07); outline:none;
+  transition:border-color 0.2s, box-shadow 0.2s;
+}
+.inp-wrap input::placeholder { color:rgba(255,255,255,0.25); }
+.inp-wrap input:focus { border-color: var(--blue-mid); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+.inp-prefix { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:15px; color:rgba(255,255,255,0.45); pointer-events:none; }
+.inp-wrap.has-prefix input { padding-left:40px; }
+.login-footer { position:relative; z-index:2; padding:16px 16px 28px; text-align:center; font-size:12px; color:rgba(255,255,255,0.3); }
+
+/* OTP screen */
+.otp-inputs { display:flex; gap:10px; justify-content:center; margin:24px 0; }
+.otp-box {
+  width:52px; height:58px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius:14px;
+  background:rgba(255,255,255,0.07);
+  font-size:24px; font-weight:700; color:white;
+  text-align:center; outline:none; font-family:var(--font-mono);
+  transition:all 0.2s;
+}
+.otp-box:focus { border-color:var(--blue-mid); box-shadow:0 0 0 3px rgba(37,99,235,0.2); background:rgba(37,99,235,0.1); }
+.otp-box.filled { border-color: var(--green); background:rgba(16,185,129,0.1); }
+
+/* ═══════════════════════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════════════════════ */
+.btn {
+  width:100%; padding:15px 20px;
+  border:none; border-radius:14px;
+  font-family:var(--font); font-size:15px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn-primary { background: linear-gradient(135deg, #2563eb, #3b82f6); color:white; box-shadow: var(--shadow-blue); }
+.btn-primary:hover { transform:translateY(-1px); box-shadow: 0 12px 40px rgba(37,99,235,0.4); }
+.btn-primary:active { transform:scale(0.98); }
+.btn-outline { background:transparent; border:1.5px solid rgba(255,255,255,0.2); color:white; }
+.btn-outline:hover { background:rgba(255,255,255,0.08); }
+.btn-ghost { background:rgba(255,255,255,0.08); color:white; }
+.btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color:white; }
+.btn-green { background: linear-gradient(135deg, #10b981, #059669); color:white; box-shadow: 0 8px 24px rgba(16,185,129,0.3); }
+.btn-sm { padding:10px 16px; font-size:13px; border-radius:10px; width:auto; }
+.btn-icon { width:44px; height:44px; border:none; border-radius:12px; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
+.btn-icon:hover { background:rgba(255,255,255,0.18); }
+.btn-loading { opacity:0.7; pointer-events:none; }
+
+/* headers */
+.top-bar {
+  display:flex; align-items:center; gap:12px;
+  padding: 12px 16px; background:var(--card);
+  border-bottom: 1px solid var(--border);
+  height: var(--header-h); flex-shrink:0;
+  position:relative; z-index:10;
+}
+.top-bar-title { flex:1; font-size:17px; font-weight:700; color:var(--text); }
+.back-btn { width:40px; height:40px; border:none; background:var(--surface); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+
+/* bottom nav */
+.bottom-nav {
+  display:flex; background:var(--card);
+  border-top: 1px solid var(--border);
+  height: var(--nav-h); flex-shrink:0;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:none; background:transparent; cursor:pointer; padding:8px 4px; transition:all 0.2s; color:var(--text-hint); font-family:var(--font); }
+.nav-item.active { color:var(--blue); }
+.nav-item svg { width:22px; height:22px; transition:all 0.2s; }
+.nav-item.active svg { transform:scale(1.1); }
+.nav-label { font-size:11px; font-weight:600; }
+.nav-dot { width:6px; height:6px; border-radius:50%; background:var(--blue); position:absolute; top:6px; }
+
+/* scrollable content area */
+.scroll-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.scroll-body::-webkit-scrollbar { display:none; }
+
+/* cards */
+.card { background:var(--card); border-radius:var(--r); padding:18px; box-shadow:var(--shadow-sm); margin-bottom:12px; }
+.card-dark { background: linear-gradient(135deg, var(--ink), var(--ink-2)); border-radius:var(--r); padding:20px; box-shadow:var(--shadow-lg); }
+
+/* badges */
+.badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:100px; font-size:11px; font-weight:700; letter-spacing:0.3px; }
+.badge-green { background:var(--green-light); color:var(--green); }
+.badge-amber { background:var(--amber-light); color:var(--amber); }
+.badge-red { background:var(--red-light); color:var(--red); }
+.badge-blue { background:var(--blue-light); color:var(--blue); }
+.badge-ev { background:var(--ev-light); color:var(--ev); }
+.badge-dark { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.8); }
+
+/* section titles */
+.sec-title { font-size:18px; font-weight:700; color:var(--text); margin-bottom:14px; }
+.sec-sub { font-size:13px; color:var(--text-muted); margin-top:2px; }
+
+/* toast */
+.toast-wrap { position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:8px; pointer-events:none; width:calc(100% - 32px); max-width:360px; }
+.toast {
+  display:flex; align-items:center; gap:12px; padding:14px 18px;
+  background:rgba(10,15,30,0.92); backdrop-filter:blur(20px);
+  border-radius:14px; border:1px solid rgba(255,255,255,0.1);
+  color:white; font-size:14px; font-weight:500;
+  animation: toastIn 0.3s cubic-bezier(0.22,1,0.36,1) forwards;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.toast.removing { animation: toastOut 0.25s ease forwards; }
+@keyframes toastIn { from { opacity:0; transform:translateY(-12px) scale(0.95); } to { opacity:1; transform:none; } }
+@keyframes toastOut { from { opacity:1; transform:none; } to { opacity:0; transform:translateY(-8px) scale(0.95); } }
+.toast-icon { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; }
+.toast-success .toast-icon { background:rgba(16,185,129,0.2); }
+.toast-error .toast-icon { background:rgba(239,68,68,0.2); }
+.toast-info .toast-icon { background:rgba(37,99,235,0.2); }
+.toast-warn .toast-icon { background:rgba(245,158,11,0.2); }
+
+/* loader overlay */
+.loader-overlay { position:fixed; inset:0; background:rgba(6,13,31,0.7); backdrop-filter:blur(4px); z-index:9990; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+.loader-overlay.hidden { display:none; }
+.spin { width:48px; height:48px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--blue-mid); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loader-text { color:rgba(255,255,255,0.7); font-size:14px; font-weight:500; }
+
+/* modals */
+.modal-backdrop { position:fixed; inset:0; background:rgba(6,13,31,0.7); backdrop-filter:blur(4px); z-index:8000; display:none; align-items:flex-end; }
+.modal-backdrop.open { display:flex; animation:fadeIn 0.2s; }
+.modal-sheet {
+  width:100%; background:var(--card);
+  border-radius:24px 24px 0 0;
+  padding:20px 0 32px;
+  animation: sheetUp 0.32s cubic-bezier(0.22,1,0.36,1);
+  max-height: 90vh; overflow-y:auto;
+}
+.modal-handle { width:40px; height:4px; background:var(--border-dark); border-radius:2px; margin:0 auto 20px; }
+.modal-title { font-size:20px; font-weight:800; padding:0 20px; margin-bottom:20px; }
+@keyframes sheetUp { from { transform:translateY(100%); } to { transform:none; } }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+/* ═══════════════════════════════════════════════
+   HOME — MAP SCREEN
+═══════════════════════════════════════════════ */
+#home { background: var(--surface); }
+.home-header {
+  background: linear-gradient(135deg, var(--ink), var(--ink-2));
+  padding: 16px 16px 20px;
+  flex-shrink:0;
+}
+.home-top { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.home-greeting { flex:1; }
+.home-hi { font-size:14px; color:rgba(255,255,255,0.5); font-weight:400; }
+.home-name { font-size:18px; font-weight:700; color:white; }
+.search-bar {
+  display:flex; align-items:center; gap:10px;
+  background:rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.12);
+  border-radius:14px; padding:12px 14px;
+}
+.search-bar input { flex:1; border:none; background:transparent; font-family:var(--font); font-size:14px; color:white; outline:none; }
+.search-bar input::placeholder { color:rgba(255,255,255,0.35); }
+.filters-row { display:flex; gap:8px; overflow-x:auto; padding:12px 16px; flex-shrink:0; }
+.filters-row::-webkit-scrollbar { display:none; }
+.filter-chip {
+  display:flex; align-items:center; gap:6px; padding:8px 14px;
+  background:var(--card); border:1.5px solid var(--border);
+  border-radius:100px; font-size:13px; font-weight:600; color:var(--text-muted);
+  white-space:nowrap; cursor:pointer; transition:all 0.2s; flex-shrink:0;
+}
+.filter-chip.active { background:var(--ink); border-color:var(--ink); color:white; }
+.view-toggle { display:flex; background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-right:8px; flex-shrink:0; }
+.view-btn { padding:7px 14px; border:none; background:transparent; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; color:var(--text-muted); transition:all 0.2s; }
+.view-btn.active { background:var(--ink); color:white; }
+
+/* map */
+#map-container { flex:1; position:relative; overflow:hidden; }
+#gmap { width:100%; height:100%; }
+.map-placeholder { width:100%; height:100%; background: linear-gradient(160deg, #e8f0fe, #f0f4ff); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; color:var(--text-muted); font-size:14px; }
+.map-marker {
+  position:absolute; transform:translate(-50%,-100%);
+  display:flex; flex-direction:column; align-items:center;
+  cursor:pointer; transition:transform 0.2s;
+  animation: markerPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.map-marker:hover { transform:translate(-50%,-100%) scale(1.1); }
+@keyframes markerPop { from{transform:translate(-50%,-100%) scale(0);opacity:0} to{transform:translate(-50%,-100%) scale(1);opacity:1} }
+.marker-pin {
+  display:flex; align-items:center; gap:6px;
+  padding:7px 12px; border-radius:100px;
+  font-size:13px; font-weight:700; color:white;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+.marker-pin::after { content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; }
+.marker-green .marker-pin { background:var(--green); }
+.marker-green .marker-pin::after { border-top:6px solid var(--green); }
+.marker-amber .marker-pin { background:var(--amber); }
+.marker-amber .marker-pin::after { border-top:6px solid var(--amber); }
+.marker-red .marker-pin { background:var(--red); }
+.marker-red .marker-pin::after { border-top:6px solid var(--red); }
+.marker-ev .marker-pin { background:var(--ev); }
+.marker-ev .marker-pin::after { border-top:6px solid var(--ev); }
+.map-popup {
+  position:absolute; background:var(--card);
+  border-radius:16px; padding:16px; box-shadow:var(--shadow-lg);
+  width:220px; z-index:100;
+  animation: popupIn 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes popupIn { from{opacity:0;transform:translateY(8px)scale(0.95)} to{opacity:1;transform:none} }
+.map-popup-close { position:absolute; top:10px; right:10px; width:26px; height:26px; border:none; background:var(--surface); border-radius:50%; cursor:pointer; font-size:14px; color:var(--text-muted); display:flex; align-items:center; justify-content:center; }
+.map-loc-btn { position:absolute; bottom:90px; right:16px; width:48px; height:48px; border:none; background:var(--card); border-radius:14px; box-shadow:var(--shadow-md); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:50; }
+.map-legend { position:absolute; bottom:12px; left:12px; background:rgba(255,255,255,0.95); backdrop-filter:blur(8px); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:5px; box-shadow:var(--shadow-sm); z-index:50; }
+.legend-item { display:flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:var(--text-2); }
+.legend-dot { width:10px; height:10px; border-radius:50%; }
+
+/* park list */
+.park-card {
+  background:var(--card); border-radius:var(--r); padding:16px;
+  box-shadow:var(--shadow-xs); border:1px solid var(--border);
+  margin-bottom:10px; cursor:pointer; transition:all 0.2s;
+}
+.park-card:hover { box-shadow:var(--shadow-md); transform:translateY(-1px); }
+.park-card-top { display:flex; gap:12px; align-items:flex-start; }
+.park-icon { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:22px; }
+.park-info { flex:1; }
+.park-name { font-size:16px; font-weight:700; color:var(--text); margin-bottom:3px; }
+.park-addr { font-size:12px; color:var(--text-muted); margin-bottom:8px; }
+.park-badges { display:flex; gap:5px; flex-wrap:wrap; }
+.park-stats { display:flex; gap:16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+.park-stat { flex:1; text-align:center; }
+.park-stat-val { font-size:18px; font-weight:800; font-family:var(--font-mono); color:var(--text); }
+.park-stat-lbl { font-size:11px; color:var(--text-muted); font-weight:500; margin-top:2px; }
+.slot-bar { height:5px; background:var(--border); border-radius:3px; margin-top:12px; overflow:hidden; }
+.slot-fill { height:100%; border-radius:3px; transition:width 0.6s ease; }
+
+/* ═══════════════════════════════════════════════
+   PARK DETAIL
+═══════════════════════════════════════════════ */
+#detail { background:var(--surface); }
+.detail-hero {
+  height:180px; position:relative; overflow:hidden; flex-shrink:0;
+  background: linear-gradient(135deg, var(--ink), var(--ink-2));
+  display:flex; align-items:center; justify-content:center;
+}
+.detail-hero-icon { font-size:64px; opacity:0.3; }
+.detail-hero-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%); }
+.detail-hero-info { position:absolute; bottom:0; left:0; right:0; padding:16px; }
+.detail-hero-name { font-size:22px; font-weight:800; color:white; margin-bottom:4px; }
+.detail-hero-addr { font-size:13px; color:rgba(255,255,255,0.65); display:flex; align-items:center; gap:4px; }
+.detail-back { position:absolute; top:14px; left:14px; }
+.detail-stats { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; padding:16px; flex-shrink:0; }
+.dstat { background:var(--card); border-radius:var(--r-sm); padding:12px 8px; text-align:center; }
+.dstat-val { font-size:20px; font-weight:800; font-family:var(--font-mono); color:var(--text); }
+.dstat-lbl { font-size:10px; color:var(--text-muted); margin-top:3px; font-weight:600; text-transform:uppercase; }
+.amenity-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.amenity-item { display:flex; align-items:center; gap:8px; padding:10px 12px; background:var(--surface); border-radius:var(--r-sm); font-size:13px; font-weight:500; color:var(--text-2); }
+.review-item { padding:14px 0; border-bottom:1px solid var(--border); }
+.review-item:last-child { border-bottom:none; }
+.review-header { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.review-avatar { width:32px; height:32px; border-radius:50%; background: linear-gradient(135deg,#2563eb,#8b5cf6); display:flex; align-items:center; justify-content:center; color:white; font-size:13px; font-weight:700; }
+.review-stars { color:var(--amber); font-size:13px; }
+.review-text { font-size:13px; color:var(--text-muted); line-height:1.6; }
+.detail-cta { padding:16px; display:flex; gap:10px; flex-shrink:0; background:var(--card); border-top:1px solid var(--border); }
+
+/* ═══════════════════════════════════════════════
+   BOOKING FLOW
+═══════════════════════════════════════════════ */
+#booking { background:var(--surface); }
+.step-bar { display:flex; gap:0; padding:16px 20px; background:var(--card); border-bottom:1px solid var(--border); flex-shrink:0; }
+.step-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; position:relative; }
+.step-item:not(:last-child)::after { content:''; position:absolute; top:14px; left:60%; width:80%; height:2px; background:var(--border); z-index:0; }
+.step-item.done:not(:last-child)::after { background:var(--blue); }
+.step-num { width:28px; height:28px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--text-muted); position:relative; z-index:1; transition:all 0.3s; }
+.step-item.active .step-num { background:var(--blue); color:white; box-shadow:0 0 0 4px var(--blue-light); }
+.step-item.done .step-num { background:var(--green); color:white; }
+.step-lbl { font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+.step-item.active .step-lbl { color:var(--blue); }
+
+.vehicle-select { display:flex; flex-direction:column; gap:10px; }
+.vehicle-card { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--card); border:2px solid var(--border); border-radius:var(--r-sm); cursor:pointer; transition:all 0.2s; }
+.vehicle-card.selected { border-color:var(--blue); background:var(--blue-light); }
+.vehicle-icon { font-size:28px; }
+.vehicle-info { flex:1; }
+.vehicle-name { font-size:15px; font-weight:700; }
+.vehicle-reg { font-size:12px; color:var(--text-muted); font-family:var(--font-mono); }
+.vehicle-radio { width:20px; height:20px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.vehicle-card.selected .vehicle-radio { border-color:var(--blue); background:var(--blue); }
+.vehicle-card.selected .vehicle-radio::after { content:''; width:8px; height:8px; border-radius:50%; background:white; }
+
+.booking-type-tabs { display:flex; gap:8px; margin-bottom:20px; }
+.btype-tab { flex:1; padding:12px 8px; border:2px solid var(--border); border-radius:12px; text-align:center; cursor:pointer; transition:all 0.2s; }
+.btype-tab.active { border-color:var(--blue); background:var(--blue-light); }
+.btype-icon { font-size:22px; margin-bottom:4px; }
+.btype-lbl { font-size:12px; font-weight:700; color:var(--text-muted); }
+.btype-tab.active .btype-lbl { color:var(--blue); }
+.duration-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+.dur-btn { padding:12px 8px; border:2px solid var(--border); border-radius:12px; text-align:center; cursor:pointer; font-size:14px; font-weight:700; color:var(--text-muted); transition:all 0.2s; background:var(--card); }
+.dur-btn.selected { border-color:var(--blue); background:var(--blue); color:white; }
+
+.booking-summary { background: linear-gradient(135deg, var(--ink), var(--ink-2)); border-radius:20px; padding:22px; color:white; }
+.bsum-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1); }
+.bsum-row:last-child { border-bottom:none; }
+.bsum-lbl { font-size:13px; color:rgba(255,255,255,0.55); }
+.bsum-val { font-size:14px; font-weight:700; }
+.bsum-total .bsum-val { font-size:22px; font-weight:800; color: var(--cyan); }
+
+/* ═══════════════════════════════════════════════
+   QR TICKET
+═══════════════════════════════════════════════ */
+#qr-ticket { background:var(--surface); }
+.ticket-wrap { margin:16px; }
+.ticket {
+  background:var(--card); border-radius:24px; overflow:hidden;
+  box-shadow: 0 20px 60px rgba(37,99,235,0.2), 0 4px 20px rgba(0,0,0,0.1);
+  border: 1px solid var(--border);
+}
+.ticket-header {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb, #7c3aed);
+  padding:24px 20px;
+  position:relative; overflow:hidden;
+}
+.ticket-header::before {
+  content:'P'; position:absolute; right:-20px; top:-20px;
+  font-size:140px; font-weight:900; color:rgba(255,255,255,0.06);
+  font-family:var(--font);
+}
+.ticket-brand { font-size:14px; font-weight:700; color:rgba(255,255,255,0.65); letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; }
+.ticket-parking-name { font-size:22px; font-weight:800; color:white; margin-bottom:4px; }
+.ticket-id { font-size:13px; color:rgba(255,255,255,0.5); font-family:var(--font-mono); }
+.ticket-separator { display:flex; align-items:center; margin:0; }
+.ticket-separator-line { flex:1; border-top:2px dashed var(--border); }
+.ticket-notch { width:24px; height:24px; background:var(--surface); border-radius:50%; flex-shrink:0; }
+.ticket-body { padding:20px; }
+.ticket-row { display:flex; justify-content:space-between; margin-bottom:14px; }
+.ticket-field-lbl { font-size:11px; font-weight:700; color:var(--text-hint); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:3px; }
+.ticket-field-val { font-size:14px; font-weight:700; color:var(--text); }
+.ticket-qr-section { display:flex; flex-direction:column; align-items:center; padding:20px; background:var(--surface); border-top:1px solid var(--border); gap:12px; }
+#qr-canvas { border-radius:12px; }
+.ticket-qr-hint { font-size:12px; color:var(--text-muted); text-align:center; font-weight:500; }
+.ticket-actions { display:flex; gap:10px; padding:0 20px 20px; }
+
+/* ═══════════════════════════════════════════════
+   ACTIVE SESSION
+═══════════════════════════════════════════════ */
+#session { background: linear-gradient(160deg, var(--ink) 0%, #0d1b3e 60%, var(--ink) 100%); }
+.session-hero { padding:28px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; flex-shrink:0; }
+.session-timer-wrap { position:relative; width:180px; height:180px; }
+.session-timer-svg { width:100%; height:100%; transform:rotate(-90deg); }
+.timer-bg { fill:none; stroke:rgba(255,255,255,0.1); stroke-width:8; }
+.timer-progress { fill:none; stroke:url(#timerGrad); stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset 1s linear; }
+.session-timer-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.session-time-big { font-size:36px; font-weight:800; color:white; font-family:var(--font-mono); letter-spacing:-1px; }
+.session-time-lbl { font-size:12px; color:rgba(255,255,255,0.4); font-weight:500; text-transform:uppercase; letter-spacing:1px; }
+.session-status { display:flex; align-items:center; gap:8px; }
+.session-status-dot { width:10px; height:10px; border-radius:50%; background:var(--green); animation:blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+.session-status-text { font-size:15px; font-weight:600; color:white; }
+.session-info-strip { display:flex; gap:0; padding:0 20px 20px; flex-shrink:0; }
+.sinfo { flex:1; text-align:center; padding:16px 8px; background:rgba(255,255,255,0.06); border-radius:14px; margin:0 4px; }
+.sinfo-val { font-size:16px; font-weight:700; color:white; font-family:var(--font-mono); }
+.sinfo-lbl { font-size:11px; color:rgba(255,255,255,0.4); margin-top:3px; font-weight:500; }
+.session-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 20px; flex-shrink:0; }
+.sact-btn { display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); border-radius:16px; border:none; cursor:pointer; transition:all 0.2s; }
+.sact-btn:hover { background:rgba(255,255,255,0.12); }
+.sact-icon { font-size:22px; }
+.sact-lbl { font-size:12px; font-weight:600; color:rgba(255,255,255,0.7); }
+.session-end { padding:20px; flex-shrink:0; }
+
+/* ═══════════════════════════════════════════════
+   BOOKINGS HISTORY
+═══════════════════════════════════════════════ */
+#bookings { background:var(--surface); }
+.tab-bar { display:flex; background:var(--card); border-bottom:1px solid var(--border); flex-shrink:0; }
+.tab-btn { flex:1; padding:14px 8px; border:none; background:transparent; font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; transition:all 0.2s; }
+.tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
+.booking-item { background:var(--card); border-radius:var(--r); margin-bottom:10px; overflow:hidden; }
+.booking-item-header { padding:14px 16px; display:flex; justify-content:space-between; align-items:flex-start; }
+.bi-name { font-size:16px; font-weight:700; }
+.bi-meta { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.booking-item-body { padding:0 16px 14px; display:flex; gap:16px; }
+.bi-detail { flex:1; }
+.bi-lbl { font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; }
+.bi-val { font-size:13px; font-weight:600; color:var(--text); margin-top:2px; }
+.booking-item-actions { padding:12px 16px; border-top:1px solid var(--border); display:flex; gap:8px; }
+
+/* ═══════════════════════════════════════════════
+   PROFILE
+═══════════════════════════════════════════════ */
+#profile { background:var(--surface); }
+.profile-hero {
+  background: linear-gradient(135deg, var(--ink), var(--ink-2));
+  padding:40px 20px 28px;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.profile-avatar {
+  width:80px; height:80px; border-radius:50%;
+  background: linear-gradient(135deg, #2563eb, #8b5cf6);
+  display:flex; align-items:center; justify-content:center;
+  font-size:32px; font-weight:700; color:white;
+  border:3px solid rgba(255,255,255,0.2);
+  box-shadow: 0 0 0 6px rgba(37,99,235,0.15);
+}
+.profile-name { font-size:22px; font-weight:800; color:white; }
+.profile-phone { font-size:14px; color:rgba(255,255,255,0.5); }
+.profile-stats { display:flex; gap:0; padding:0 20px 20px; background: linear-gradient(135deg, var(--ink), var(--ink-2)); flex-shrink:0; }
+.pstat { flex:1; text-align:center; padding:12px; background:rgba(255,255,255,0.07); border-radius:12px; margin:0 4px; }
+.pstat-val { font-size:20px; font-weight:800; color:white; font-family:var(--font-mono); }
+.pstat-lbl { font-size:11px; color:rgba(255,255,255,0.4); margin-top:2px; }
+.menu-section { padding:16px; }
+.menu-section-title { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+.menu-item { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--card); border-radius:var(--r-sm); margin-bottom:8px; cursor:pointer; transition:all 0.2s; }
+.menu-item:hover { background:var(--blue-light); }
+.menu-icon { width:40px; height:40px; border-radius:12px; background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.menu-label { flex:1; font-size:15px; font-weight:600; color:var(--text); }
+.menu-arrow { color:var(--text-hint); font-size:16px; }
+.menu-item.danger .menu-label { color:var(--red); }
+.menu-item.danger .menu-icon { background:var(--red-light); }
+
+/* ═══════════════════════════════════════════════
+   OWNER DASHBOARD
+═══════════════════════════════════════════════ */
+#owner { background:var(--surface); }
+.owner-hero {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  padding:20px 16px 24px; flex-shrink:0;
+}
+.kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+.kpi-card { background:rgba(255,255,255,0.08); border-radius:16px; padding:16px; border:1px solid rgba(255,255,255,0.1); }
+.kpi-label { font-size:11px; color:rgba(255,255,255,0.45); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+.kpi-value { font-size:28px; font-weight:800; color:white; font-family:var(--font-mono); line-height:1; }
+.kpi-trend { font-size:12px; margin-top:4px; font-weight:600; }
+.kpi-trend.up { color:var(--green); }
+.kpi-trend.warn { color:var(--amber); }
+.live-booking-row { display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--border); }
+.live-booking-row:last-child { border-bottom:none; }
+.lbr-slot { width:40px; height:40px; border-radius:10px; background:var(--blue-light); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:var(--blue); flex-shrink:0; font-family:var(--font-mono); }
+.lbr-info { flex:1; }
+.lbr-name { font-size:14px; font-weight:600; }
+.lbr-meta { font-size:12px; color:var(--text-muted); }
+.lbr-time { font-size:13px; font-weight:700; color:var(--text-2); font-family:var(--font-mono); }
+
+/* ═══════════════════════════════════════════════
+   ADD PARKING FORM
+═══════════════════════════════════════════════ */
+#add-parking { background:var(--surface); }
+.form-section { background:var(--card); border-radius:var(--r); padding:18px; margin-bottom:12px; }
+.form-section-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.form-section-title span { width:26px; height:26px; background:var(--blue-light); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.form-field { margin-bottom:14px; }
+.form-label { display:block; font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+.form-input { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:14px; color:var(--text); background:var(--surface); outline:none; transition:border-color 0.2s; }
+.form-input:focus { border-color:var(--blue); background:white; }
+.toggle-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.toggle-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface); border-radius:10px; cursor:pointer; transition:all 0.2s; border:1.5px solid transparent; }
+.toggle-item.on { background:var(--blue-light); border-color:var(--blue-mid); }
+.toggle-check { width:22px; height:22px; border:2px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; }
+.toggle-item.on .toggle-check { background:var(--blue); border-color:var(--blue); }
+.toggle-item.on .toggle-check::after { content:'✓'; color:white; font-size:13px; font-weight:700; }
+.toggle-label { font-size:13px; font-weight:600; color:var(--text-2); }
+
+/* ═══════════════════════════════════════════════
+   ADMIN PANEL
+═══════════════════════════════════════════════ */
+#admin { background:var(--surface); }
+.admin-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px; }
+.astat { background:var(--card); border-radius:var(--r-sm); padding:16px; border-left:4px solid; }
+.astat-val { font-size:26px; font-weight:800; font-family:var(--font-mono); color:var(--text); }
+.astat-lbl { font-size:12px; color:var(--text-muted); font-weight:600; margin-top:4px; }
+.city-bar-item { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.city-name { font-size:13px; font-weight:600; color:var(--text-2); width:80px; flex-shrink:0; }
+.city-bar-wrap { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+.city-bar-fill { height:100%; border-radius:4px; background: linear-gradient(90deg, #2563eb, #8b5cf6); transition:width 0.8s ease; }
+.city-pct { font-size:12px; font-weight:700; color:var(--text-muted); width:36px; text-align:right; }
+.verify-item { display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--border); }
+.verify-item:last-child { border-bottom:none; }
+.verify-icon { width:44px; height:44px; border-radius:12px; background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.verify-info { flex:1; }
+.verify-name { font-size:14px; font-weight:700; }
+.verify-sub { font-size:12px; color:var(--text-muted); }
+.verify-actions { display:flex; gap:6px; }
+
+/* ═══════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════ */
+.p16 { padding:16px; }
+.pb16 { padding-bottom:16px; }
+.mt8 { margin-top:8px; }
+.mt12 { margin-top:12px; }
+.mt16 { margin-top:16px; }
+.mt20 { margin-top:20px; }
+.mb8 { margin-bottom:8px; }
+.mb12 { margin-bottom:12px; }
+.flex { display:flex; }
+.flex-1 { flex:1; }
+.items-center { align-items:center; }
+.justify-between { justify-content:space-between; }
+.gap-8 { gap:8px; }
+.gap-12 { gap:12px; }
+.gap-16 { gap:16px; }
+.row { display:flex; align-items:center; }
+.col { display:flex; flex-direction:column; }
+.text-center { text-align:center; }
+.text-sm { font-size:13px; }
+.text-xs { font-size:12px; }
+.text-muted { color:var(--text-muted); }
+.text-white { color:white; }
+.fw-700 { font-weight:700; }
+.fw-800 { font-weight:800; }
+.hidden { display:none !important; }
+.w-full { width:100%; }
+
+/* notification dot on booking tab */
+.nav-item-wrap { position:relative; }
+.notif-badge { position:absolute; top:6px; right:12px; width:8px; height:8px; background:var(--red); border-radius:50%; border:2px solid var(--card); }
+
+/* ═══════════════════════════════════════════════
+   FEATURE 1 — WHATSAPP BOT
+═══════════════════════════════════════════════ */
+#whatsapp-bot { background: #075E54; }
+.wa-header {
+  background: linear-gradient(135deg, #075E54, #128C7E);
+  padding: 20px 16px 16px; display:flex; align-items:center; gap:12px; flex-shrink:0;
+}
+.wa-avatar { width:44px; height:44px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; font-size:22px; }
+.wa-title { color:white; font-weight:700; font-size:16px; }
+.wa-status { color:rgba(255,255,255,0.7); font-size:12px; display:flex; align-items:center; gap:4px; }
+.wa-chat { flex:1; overflow-y:auto; padding:12px 12px 8px; background:#ECE5DD url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c8b8a2' fill-opacity='0.15'%3E%3Cpath d='M30 10 L50 30 L30 50 L10 30Z'/%3E%3C/g%3E%3C/svg%3E"); }
+.wa-bubble { max-width:82%; padding:10px 13px 6px; border-radius:8px; margin-bottom:8px; position:relative; font-size:14px; line-height:1.5; }
+.wa-bubble.bot { background:white; border-radius:0 8px 8px 8px; margin-right:auto; box-shadow:0 1px 2px rgba(0,0,0,0.12); }
+.wa-bubble.user { background:#DCF8C6; border-radius:8px 0 8px 8px; margin-left:auto; box-shadow:0 1px 2px rgba(0,0,0,0.12); }
+.wa-bubble-time { font-size:10px; color:#999; text-align:right; margin-top:3px; }
+.wa-bubble.bot .wa-bubble-time { text-align:right; }
+.wa-typing { display:flex; gap:4px; align-items:center; padding:10px 14px; background:white; border-radius:0 8px 8px 8px; width:60px; box-shadow:0 1px 2px rgba(0,0,0,0.12); margin-bottom:8px; }
+.wa-dot { width:7px; height:7px; border-radius:50%; background:#999; animation: waDot 1.2s ease-in-out infinite; }
+.wa-dot:nth-child(2) { animation-delay:0.2s; }
+.wa-dot:nth-child(3) { animation-delay:0.4s; }
+@keyframes waDot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+.wa-input-bar { display:flex; gap:8px; padding:8px 10px; background:#F0F0F0; flex-shrink:0; align-items:flex-end; }
+.wa-input { flex:1; padding:10px 14px; border:none; border-radius:22px; font-family:var(--font); font-size:14px; background:white; outline:none; resize:none; max-height:100px; }
+.wa-send { width:46px; height:46px; border-radius:50%; background:#25D366; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+.wa-quick-replies { display:flex; flex-wrap:wrap; gap:6px; padding:0 0 8px 0; }
+.wa-qr-btn { padding:7px 14px; background:white; border:1.5px solid #25D366; border-radius:20px; font-size:13px; font-weight:600; color:#075E54; cursor:pointer; transition:all 0.2s; }
+.wa-qr-btn:hover { background:#25D366; color:white; }
+.wa-ticket-card { background:white; border-radius:10px; overflow:hidden; border:1px solid #e0e0e0; margin-top:4px; }
+.wa-ticket-header { background: linear-gradient(135deg, #075E54, #128C7E); padding:10px 12px; color:white; font-weight:700; font-size:13px; }
+.wa-ticket-body { padding:10px 12px; font-size:13px; }
+.wa-ticket-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f0f0f0; }
+.wa-ticket-row:last-child { border-bottom:none; }
+
+/* ═══════════════════════════════════════════════
+   FEATURE 2 — FESTIVAL SURGE PREDICTION
+═══════════════════════════════════════════════ */
+#surge { background:var(--surface); }
+.surge-hero {
+  background: linear-gradient(135deg, #7c2d12, #b45309, #d97706);
+  padding:20px 16px 24px; flex-shrink:0; position:relative; overflow:hidden;
+}
+.surge-hero::before { content:'🪔'; position:absolute; right:-10px; top:-10px; font-size:90px; opacity:0.15; }
+.surge-hero::after  { content:'🎉'; position:absolute; right:40px; bottom:-10px; font-size:70px; opacity:0.12; }
+.surge-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:rgba(255,255,255,0.15); border-radius:100px; font-size:12px; font-weight:700; color:white; margin-bottom:10px; }
+.surge-title { font-size:24px; font-weight:800; color:white; margin-bottom:4px; }
+.surge-sub { font-size:13px; color:rgba(255,255,255,0.7); }
+.forecast-card { background:var(--card); border-radius:var(--r); margin-bottom:10px; overflow:hidden; border:1px solid var(--border); }
+.fc-header { padding:14px 16px; display:flex; align-items:center; gap:12px; }
+.fc-event-icon { font-size:28px; }
+.fc-event-info { flex:1; }
+.fc-event-name { font-size:15px; font-weight:700; }
+.fc-event-date { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.fc-demand-badge { padding:6px 12px; border-radius:100px; font-size:12px; font-weight:800; }
+.fc-demand-critical { background:#fef2f2; color:#dc2626; }
+.fc-demand-high     { background:#fef3c7; color:#b45309; }
+.fc-demand-medium   { background:#ecfdf5; color:#065f46; }
+.fc-body { padding:0 16px 16px; }
+.fc-parks { display:flex; flex-direction:column; gap:6px; }
+.fc-park-row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface); border-radius:10px; }
+.fc-park-name { flex:1; font-size:13px; font-weight:600; }
+.fc-bar-wrap { width:80px; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+.fc-bar { height:100%; border-radius:4px; }
+.fc-pct { font-size:12px; font-weight:700; width:32px; text-align:right; }
+.fc-action-strip { display:flex; gap:8px; margin-top:12px; }
+.surge-timeline { padding:16px; }
+.st-day { display:flex; gap:12px; margin-bottom:14px; align-items:flex-start; }
+.st-dot-col { display:flex; flex-direction:column; align-items:center; gap:0; }
+.st-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+.st-line { width:2px; flex:1; min-height:24px; background:var(--border); }
+.st-content { flex:1; padding-bottom:4px; }
+.st-date { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px; }
+.st-event { font-size:14px; font-weight:700; }
+.st-hint { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.demand-meter { display:flex; gap:3px; margin-top:6px; }
+.dm-block { height:10px; border-radius:3px; flex:1; background:var(--border); transition:background 0.3s; }
+
+/* ═══════════════════════════════════════════════
+   FEATURE 3 — SPLIT PARKING
+═══════════════════════════════════════════════ */
+#split { background:var(--surface); }
+.split-hero {
+  background: linear-gradient(135deg, #1e1b4b, #312e81, #4338ca);
+  padding:20px 16px 24px; flex-shrink:0;
+}
+.split-active-card {
+  background: linear-gradient(135deg, #312e81, #4338ca);
+  border-radius:20px; padding:20px; margin-bottom:12px;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.split-you { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.split-avatar-row { display:flex; align-items:center; gap:-8px; }
+.split-av { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:white; border:2px solid rgba(255,255,255,0.3); }
+.split-divider-icon { font-size:20px; margin:0 4px; }
+.split-amount-chip { display:flex; gap:6px; }
+.split-share { flex:1; text-align:center; padding:14px 10px; border-radius:14px; }
+.contact-card { display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--card); border-radius:var(--r-sm); margin-bottom:8px; border:1.5px solid var(--border); cursor:pointer; transition:all 0.2s; }
+.contact-card.selected { border-color:var(--ev); background:var(--ev-light); }
+.contact-av { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#4338ca,#7c3aed); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:16px; }
+.contact-info { flex:1; }
+.contact-name { font-size:15px; font-weight:700; }
+.contact-phone { font-size:12px; color:var(--text-muted); font-family:var(--font-mono); }
+.split-request-card { background:var(--card); border-radius:var(--r); padding:18px; border:2px solid var(--ev); }
+.split-upi-row { display:flex; gap:8px; margin-top:12px; }
+.upi-btn { flex:1; padding:12px; border:1.5px solid var(--border); border-radius:10px; text-align:center; cursor:pointer; transition:all 0.2s; }
+.upi-btn.selected { border-color:var(--ev); background:var(--ev-light); }
+.upi-icon { font-size:22px; margin-bottom:3px; }
+.upi-name { font-size:11px; font-weight:700; color:var(--text-muted); }
+
+/* ═══════════════════════════════════════════════
+   FEATURE 4 — LIVE CCTV
+═══════════════════════════════════════════════ */
+#cctv { background:#000; }
+.cctv-header { background:#0a0a0a; border-bottom:1px solid #1a1a2e; }
+.cctv-header .top-bar-title { color:white; }
+.cctv-header .back-btn { background:#1a1a2e; }
+.cctv-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:3px; flex:1; }
+.cctv-feed { position:relative; background:#0a0a1a; aspect-ratio:16/9; overflow:hidden; cursor:pointer; border-radius:4px; }
+.cctv-feed.active-feed { grid-column:span 2; aspect-ratio:16/9; }
+.cctv-scan-line { position:absolute; top:0; left:0; right:0; height:2px; background:rgba(0,255,0,0.5); animation:scan 3s linear infinite; box-shadow:0 0 8px rgba(0,255,0,0.5); }
+@keyframes scan { from{top:0} to{top:100%} }
+.cctv-noise { position:absolute; inset:0; opacity:0.04; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.cctv-overlay { position:absolute; inset:0; background:linear-gradient(135deg,rgba(0,20,40,0.7),transparent,rgba(0,10,20,0.5)); }
+.cctv-vehicle { position:absolute; bottom:18%; left:30%; font-size:28px; filter:drop-shadow(0 0 6px rgba(0,255,0,0.6)); animation:vehicleIdle 4s ease-in-out infinite; }
+@keyframes vehicleIdle { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+.cctv-label { position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.7); color:#00ff41; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; font-family:monospace; border:1px solid rgba(0,255,65,0.3); }
+.cctv-rec { position:absolute; top:8px; right:8px; display:flex; align-items:center; gap:4px; background:rgba(0,0,0,0.7); padding:3px 7px; border-radius:4px; }
+.rec-dot { width:6px; height:6px; border-radius:50%; background:#ef4444; animation:blink 1s infinite; }
+.rec-txt { font-size:9px; color:#ef4444; font-weight:700; font-family:monospace; }
+.cctv-timestamp { position:absolute; bottom:6px; left:6px; font-size:9px; color:rgba(255,255,255,0.6); font-family:monospace; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:3px; }
+.cctv-slot-tag { position:absolute; bottom:6px; right:6px; font-size:10px; color:#00ff41; font-family:monospace; background:rgba(0,0,0,0.7); padding:2px 8px; border-radius:4px; border:1px solid rgba(0,255,65,0.3); }
+.cctv-controls { background:#0a0a0a; padding:12px 14px; border-top:1px solid #1a1a2e; flex-shrink:0; }
+.cctv-btn-row { display:flex; gap:8px; margin-top:10px; }
+.cctv-btn { flex:1; padding:12px 8px; background:#1a1a2e; border:1px solid #2d2d4e; border-radius:12px; color:white; font-family:var(--font); font-size:12px; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:5px; transition:all 0.2s; }
+.cctv-btn:hover { background:#252545; border-color:#4338ca; }
+.cctv-btn-icon { font-size:18px; }
+.cctv-status-bar { display:flex; justify-content:space-between; align-items:center; }
+.cctv-live-badge { display:flex; align-items:center; gap:5px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:6px; padding:4px 10px; }
+.cctv-clip-preview { background:#111; border-radius:10px; padding:12px; margin-top:10px; display:none; }
+.clip-timeline { height:36px; background:#1a1a2e; border-radius:6px; position:relative; overflow:hidden; margin-top:8px; }
+.clip-progress { position:absolute; top:0; left:0; height:100%; background:linear-gradient(90deg,#2563eb,#8b5cf6); border-radius:6px; animation:clipPlay 8s linear forwards; }
+@keyframes clipPlay { from{width:0} to{width:100%} }
+.clip-markers { position:absolute; inset:0; display:flex; align-items:center; padding:0 8px; gap:4px; }
+.clip-mark { width:2px; height:20px; background:rgba(255,255,255,0.2); }
+
+/* ═══════════════════════════════════════════════
+   FEATURE 5 — LAST MILE LINK
+═══════════════════════════════════════════════ */
+#lastmile { background:var(--surface); }
+.lm-hero {
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  padding:20px 16px 28px; flex-shrink:0;
+}
+.lm-journey { display:flex; align-items:center; gap:0; margin-top:16px; }
+.lm-stop { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.lm-stop-dot { width:14px; height:14px; border-radius:50%; }
+.lm-stop-label { font-size:11px; color:rgba(255,255,255,0.5); font-weight:600; text-align:center; max-width:70px; }
+.lm-stop-name { font-size:13px; color:white; font-weight:700; text-align:center; max-width:80px; }
+.lm-arrow { flex:1; height:2px; background:linear-gradient(90deg,#2563eb,#8b5cf6); position:relative; margin:0 4px; margin-bottom:20px; }
+.lm-arrow::after { content:'→'; position:absolute; right:-6px; top:-9px; color:#8b5cf6; font-size:16px; }
+.cab-card { background:var(--card); border-radius:var(--r); padding:16px; margin-bottom:10px; border:1.5px solid var(--border); cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:14px; }
+.cab-card:hover { border-color:var(--blue); box-shadow:var(--shadow-md); transform:translateY(-1px); }
+.cab-card.selected { border-color:var(--blue); background:var(--blue-light); }
+.cab-logo { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0; }
+.cab-info { flex:1; }
+.cab-name { font-size:16px; font-weight:800; }
+.cab-detail { font-size:13px; color:var(--text-muted); margin-top:2px; }
+.cab-eta-badge { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+.cab-eta { font-size:20px; font-weight:800; font-family:var(--font-mono); color:var(--text); }
+.cab-price { font-size:14px; font-weight:700; color:var(--blue); }
+.lm-map-preview { height:130px; background:linear-gradient(160deg,#e8f0fe,#dde8ff); border-radius:var(--r); position:relative; overflow:hidden; margin-bottom:12px; }
+.lm-route-svg { position:absolute; inset:0; width:100%; height:100%; }
+.lm-from-pin { position:absolute; left:18%; top:50%; transform:translateY(-50%); font-size:24px; }
+.lm-to-pin   { position:absolute; right:18%; top:30%; transform:translateY(-50%); font-size:24px; }
+.lm-dest-input { display:flex; gap:10px; margin-bottom:12px; }
+.lm-dest-field { flex:1; padding:13px 14px; border:1.5px solid var(--border); border-radius:12px; font-family:var(--font); font-size:14px; color:var(--text); background:white; outline:none; }
+.lm-dest-field:focus { border-color:var(--blue); }
+
+/* ── smooth number counter ── */
+@keyframes countUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+.count-anim { animation: countUp 0.4s ease; }
+
+/* ── slot selection ── */
+.slot-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; }
+.slot-item { aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; cursor:pointer; border:2px solid transparent; transition:all 0.2s; font-family:var(--font-mono); }
+.slot-available { background:var(--green-light); color:var(--green); }
+.slot-available:hover { border-color:var(--green); transform:scale(1.05); }
+.slot-occupied { background:var(--red-light); color:var(--red); cursor:not-allowed; opacity:0.7; }
+.slot-ev { background:var(--ev-light); color:var(--ev); }
+.slot-selected { background:var(--blue); color:white; border-color:var(--blue); transform:scale(1.05); }
+.slot-legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.slot-leg-item { display:flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:var(--text-muted); }
+.slot-leg-dot { width:12px; height:12px; border-radius:4px; }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ LOADER ══ -->
+<div class="loader-overlay hidden" id="globalLoader">
+  <div class="spin"></div>
+  <div class="loader-text" id="loaderText">Please wait…</div>
+</div>
+
+<!-- ══════════════════════════════════ TOASTS ══ -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ══════════════════════════════════ MODALS ══ -->
+<!-- EV Modal -->
+<div class="modal-backdrop" id="evModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚡ EV Charging Details</div>
+    <div style="padding:0 20px 8px">
+      <div class="card mb12" style="background:var(--ev-light);border:1px solid var(--ev-light)">
+        <div style="font-size:14px;font-weight:700;color:var(--ev);margin-bottom:10px">Available Chargers</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="row justify-between"><span class="text-sm">Type 2 AC (22 kW)</span><span class="badge badge-green">2 free</span></div>
+          <div class="row justify-between"><span class="text-sm">CCS DC Fast (50 kW)</span><span class="badge badge-green">1 free</span></div>
+          <div class="row justify-between"><span class="text-sm">CHAdeMO (50 kW)</span><span class="badge badge-red">Busy</span></div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7">EV charging is billed separately at ₹12/unit. Park + charge combo available. Avg charge time: 45–90 min.</div>
+    </div>
+    <div style="padding:16px 20px"><button class="btn btn-primary" onclick="closeModal('evModal')">Got it</button></div>
+  </div>
+</div>
+
+<!-- Vehicle Modal -->
+<div class="modal-backdrop" id="vehicleModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🚗 My Vehicles</div>
+    <div style="padding:0 20px" id="vehicleModalList"></div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-ghost" style="color:var(--blue);background:var(--blue-light)" onclick="closeModal('vehicleModal')">Add New Vehicle</button>
+      <button class="btn btn-outline" style="color:var(--text-muted);border-color:var(--border)" onclick="closeModal('vehicleModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Slot Picker Modal -->
+<div class="modal-backdrop" id="slotModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🅿️ Select a Slot</div>
+    <div style="padding:0 20px 8px">
+      <div class="slot-legend">
+        <div class="slot-leg-item"><div class="slot-leg-dot" style="background:var(--green-light);border:1px solid var(--green)"></div>Available</div>
+        <div class="slot-leg-item"><div class="slot-leg-dot" style="background:var(--red-light);border:1px solid var(--red)"></div>Occupied</div>
+        <div class="slot-leg-item"><div class="slot-leg-dot" style="background:var(--ev-light);border:1px solid var(--ev)"></div>EV</div>
+        <div class="slot-leg-item"><div class="slot-leg-dot" style="background:var(--blue);border:1px solid var(--blue)"></div>Selected</div>
+      </div>
+      <div class="slot-grid" id="slotGrid"></div>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" id="confirmSlotBtn" onclick="confirmSlot()">Confirm Slot</button>
+      <button class="btn btn-outline" style="background:transparent;border:1.5px solid var(--border);color:var(--text-muted)" onclick="closeModal('slotModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: SPLASH
+══════════════════════════════════════════════════════ -->
+<div class="screen active" id="splash">
+  <div class="splash-grid"></div>
+  <div class="splash-logo-wrap">
+    <div class="splash-icon">
+      <svg width="48" height="48" fill="none" viewBox="0 0 48 48">
+        <path d="M24 4C15.2 4 8 11.2 8 20c0 11 16 28 16 28s16-17 16-28c0-8.8-7.2-16-16-16z" fill="white" opacity="0.9"/>
+        <text x="24" y="26" text-anchor="middle" font-size="14" font-weight="900" fill="#2563eb" font-family="sans-serif">P</text>
+      </svg>
+    </div>
+    <div class="splash-wordmark">Park<span>Link</span></div>
+    <div class="splash-tagline">Smart Parking · India</div>
+  </div>
+  <div class="splash-loader">
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ONBOARDING
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="onboarding">
+  <div class="ob-wrap" id="obWrap">
+    <!-- Slide 1 -->
+    <div class="ob-slide">
+      <svg class="ob-art" viewBox="0 0 240 180">
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+        <rect x="30" y="60" width="180" height="90" rx="14" fill="url(#g1)" opacity="0.1"/>
+        <rect x="50" y="75" width="140" height="60" rx="10" fill="#2563eb" opacity="0.15"/>
+        <rect x="70" y="90" width="40" height="30" rx="6" fill="#2563eb" opacity="0.5"/>
+        <rect x="130" y="90" width="40" height="30" rx="6" fill="#10b981" opacity="0.5"/>
+        <circle cx="120" cy="40" r="22" fill="#2563eb"/>
+        <text x="120" y="47" text-anchor="middle" font-size="22" fill="white">🅿️</text>
+        <path d="M120 62 L120 78" stroke="#2563eb" stroke-width="3" stroke-dasharray="4,3"/>
+        <circle cx="80" cy="100" r="6" fill="white"/>
+        <circle cx="160" cy="100" r="6" fill="white"/>
+      </svg>
+      <div class="ob-badge">New in India</div>
+      <div class="ob-title" style="color:white">Find Parking<br>in Seconds</div>
+      <div class="ob-desc">Discover available parking spots near you in real-time. No more circling blocks.</div>
+    </div>
+    <!-- Slide 2 -->
+    <div class="ob-slide">
+      <svg class="ob-art" viewBox="0 0 240 180">
+        <circle cx="120" cy="90" r="60" fill="#8b5cf6" opacity="0.1"/>
+        <circle cx="120" cy="90" r="40" fill="#8b5cf6" opacity="0.15"/>
+        <text x="120" y="100" text-anchor="middle" font-size="42">⚡</text>
+        <rect x="60" y="140" width="120" height="28" rx="8" fill="#8b5cf6" opacity="0.2"/>
+        <text x="120" y="159" text-anchor="middle" font-size="13" fill="#8b5cf6" font-weight="700">EV CHARGING READY</text>
+      </svg>
+      <div class="ob-badge" style="color:#8b5cf6;border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.1)">EV Ready</div>
+      <div class="ob-title" style="color:white">Book & Pay<br>Instantly</div>
+      <div class="ob-desc">Reserve your spot before you arrive. EV charging stations included across all lots.</div>
+    </div>
+    <!-- Slide 3 -->
+    <div class="ob-slide">
+      <svg class="ob-art" viewBox="0 0 240 180">
+        <rect x="60" y="40" width="120" height="150" rx="16" fill="#1e293b"/>
+        <rect x="68" y="55" width="104" height="125" rx="10" fill="#0f172a"/>
+        <rect x="80" y="70" width="80" height="80" rx="8" fill="white" opacity="0.08"/>
+        <text x="120" y="118" text-anchor="middle" font-size="36">🎫</text>
+        <rect x="80" y="157" width="80" height="8" rx="4" fill="#2563eb" opacity="0.5"/>
+        <circle cx="120" cy="192" r="4" fill="#64748b"/>
+      </svg>
+      <div class="ob-badge" style="color:#10b981;border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.1)">Digital Ticket</div>
+      <div class="ob-title" style="color:white">QR Ticket &<br>Easy Exit</div>
+      <div class="ob-desc">Get a digital QR ticket instantly. Show at entry/exit — no paper, no hassle.</div>
+    </div>
+  </div>
+  <div class="ob-dots" id="obDots">
+    <div class="ob-dot active"></div>
+    <div class="ob-dot"></div>
+    <div class="ob-dot"></div>
+  </div>
+  <div class="ob-nav">
+    <button class="btn btn-outline" style="flex:0.4;font-size:14px" id="obSkip" onclick="goTo('login')">Skip</button>
+    <button class="btn btn-primary" id="obNext" onclick="obNextSlide()">Next →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: LOGIN
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="login">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <!-- City skyline SVG -->
+  <svg class="login-city-lines" viewBox="0 0 390 200" preserveAspectRatio="none">
+    <path d="M0,200 L0,120 L20,120 L20,80 L35,80 L35,60 L50,60 L50,80 L65,80 L65,40 L75,40 L75,20 L85,20 L85,40 L95,40 L95,80 L110,80 L110,100 L125,100 L125,70 L135,70 L135,50 L145,50 L145,70 L160,70 L160,90 L175,90 L175,55 L185,55 L185,35 L195,35 L195,55 L210,55 L210,80 L225,80 L225,60 L235,60 L235,40 L245,40 L245,60 L255,60 L255,90 L270,90 L270,75 L285,75 L285,50 L295,50 L295,75 L305,75 L305,100 L320,100 L320,70 L330,70 L330,55 L345,55 L345,70 L360,70 L360,95 L375,95 L375,110 L390,110 L390,200 Z" fill="white" opacity="0.06"/>
+  </svg>
+  <div class="login-top">
+    <div class="login-icon">
+      <svg width="36" height="36" fill="none" viewBox="0 0 48 48">
+        <path d="M24 4C15.2 4 8 11.2 8 20c0 11 16 28 16 28s16-17 16-28c0-8.8-7.2-16-16-16z" fill="white"/>
+        <text x="24" y="26" text-anchor="middle" font-size="14" font-weight="900" fill="#2563eb" font-family="sans-serif">P</text>
+      </svg>
+    </div>
+    <div class="login-brand">Park<span>Link</span></div>
+    <div class="login-brand-sub">Smart Parking · India</div>
+  </div>
+
+  <!-- STEP 1: Main login -->
+  <div class="login-card" id="loginStep1">
+    <div class="role-toggle" id="roleToggle">
+      <button class="role-btn active" onclick="setRole('driver',this)">🚗 Driver</button>
+      <button class="role-btn" onclick="setRole('owner',this)">🏢 Owner</button>
+      <button class="role-btn" onclick="setRole('admin',this)">🛡️ Admin</button>
+    </div>
+    <button class="social-btn" onclick="googleLogin()">
+      <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <button class="social-btn" onclick="appleLogin()">
+      <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      Continue with Apple
+    </button>
+    <div class="divider">or sign in with mobile</div>
+    <label class="inp-lbl">Mobile Number</label>
+    <div class="inp-wrap has-prefix">
+      <span class="inp-prefix">+91</span>
+      <input type="tel" id="mobileInput" placeholder="Enter 10-digit number" maxlength="10" inputmode="numeric">
+    </div>
+    <button class="btn btn-primary" onclick="sendOTP()">Send OTP</button>
+  </div>
+
+  <!-- STEP 2: OTP Verification -->
+  <div class="login-card hidden" id="loginStep2">
+    <div style="text-align:center;margin-bottom:8px">
+      <div style="font-size:32px;margin-bottom:8px">📱</div>
+      <div style="font-size:18px;font-weight:800;color:white;margin-bottom:6px">Verify OTP</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.45)" id="otpSentMsg">OTP sent to +91 XXXXXXXXXX</div>
+    </div>
+    <div class="otp-inputs" id="otpInputs">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,0)" onkeydown="otpBack(event,0)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,1)" onkeydown="otpBack(event,1)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,2)" onkeydown="otpBack(event,2)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,3)" onkeydown="otpBack(event,3)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,4)" onkeydown="otpBack(event,4)">
+      <input class="otp-box" type="tel" maxlength="1" inputmode="numeric" oninput="otpMove(this,5)" onkeydown="otpBack(event,5)">
+    </div>
+    <div id="otpError" class="hidden" style="text-align:center;font-size:13px;color:#ef4444;margin-bottom:12px">❌ Incorrect OTP. Please try again.</div>
+    <button class="btn btn-primary" onclick="verifyOTP()">Verify & Login</button>
+    <div style="text-align:center;margin-top:14px">
+      <span style="font-size:13px;color:rgba(255,255,255,0.35)" id="resendTimer">Resend OTP in <b id="resendCount">30</b>s</span>
+      <button class="hidden" id="resendBtn" onclick="resendOTP()" style="background:none;border:none;font-family:var(--font);font-size:13px;color:var(--blue-mid);cursor:pointer;font-weight:700">Resend OTP</button>
+    </div>
+    <button onclick="backToMobile()" style="width:100%;margin-top:10px;background:none;border:none;font-family:var(--font);font-size:13px;color:rgba(255,255,255,0.4);cursor:pointer;">← Change number</button>
+  </div>
+
+  <div class="login-footer">By continuing, you agree to ParkLink's Terms of Service & Privacy Policy</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: HOME (MAP + LIST)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="home">
+  <div class="home-header">
+    <div class="home-top">
+      <div class="home-greeting">
+        <div class="home-hi">Good morning,</div>
+        <div class="home-name" id="homeUserName">Arun Kumar 👋</div>
+      </div>
+      <button class="btn-icon" onclick="goTo('profile')">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#2563eb,#8b5cf6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:14px" id="homeAvatar">A</div>
+      </button>
+    </div>
+    <div class="search-bar">
+      <svg width="18" height="18" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search for parking, area…" oninput="onSearch(this.value)" onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()" style="background:rgba(37,99,235,0.6);border:none;border-radius:8px;padding:6px 10px;color:white;font-size:12px;font-weight:700;cursor:pointer;">GO</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 16px 0;flex-shrink:0;overflow-x:auto" class="filters-row">
+    <div class="view-toggle">
+      <button class="view-btn active" id="mapViewBtn" onclick="switchView('map')">🗺 Map</button>
+      <button class="view-btn" id="listViewBtn" onclick="switchView('list')">☰ List</button>
+    </div>
+    <div class="filter-chip active" onclick="filterParks('all',this)">All</div>
+    <div class="filter-chip" onclick="filterParks('nearest',this)">📍 Nearest</div>
+    <div class="filter-chip" onclick="filterParks('cheapest',this)">💰 Cheapest</div>
+    <div class="filter-chip" onclick="filterParks('available',this)">✅ Available</div>
+    <div class="filter-chip" onclick="filterParks('ev',this)">⚡ EV</div>
+    <div class="filter-chip" onclick="filterParks('cctv',this)">📹 CCTV</div>
+  </div>
+
+  <!-- MAP VIEW -->
+  <div id="mapView" style="flex:1;position:relative;overflow:hidden">
+    <div id="map-container" style="width:100%;height:100%;position:relative;overflow:hidden">
+      <!-- Simulated India map -->
+      <div style="width:100%;height:100%;background:linear-gradient(160deg,#e8f0fe 0%,#dde8ff 100%);position:relative" id="simMap">
+        <!-- Roads -->
+        <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.25" viewBox="0 0 390 580" preserveAspectRatio="none">
+          <path d="M50,100 Q150,120 200,200 Q250,280 300,350 Q340,400 380,420" stroke="#94a3b8" stroke-width="3" fill="none"/>
+          <path d="M0,200 Q100,210 195,250 Q280,290 390,300" stroke="#94a3b8" stroke-width="2" fill="none"/>
+          <path d="M100,0 Q120,150 130,280 Q140,400 150,580" stroke="#94a3b8" stroke-width="2" fill="none"/>
+          <path d="M0,350 Q120,330 200,340 Q300,350 390,360" stroke="#cbd5e1" stroke-width="1.5" fill="none"/>
+          <path d="M200,0 Q210,100 220,200 Q225,300 230,580" stroke="#cbd5e1" stroke-width="1.5" fill="none"/>
+        </svg>
+        <!-- Location markers -->
+        <div id="mapMarkers"></div>
+        <!-- Popup -->
+        <div id="mapPopup" class="map-popup hidden" style="top:30%;left:50%;transform:translateX(-50%)"></div>
+        <!-- My location btn -->
+        <button class="map-loc-btn" onclick="centerMap()" title="My location">
+          <svg width="22" height="22" fill="none" stroke="#2563eb" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="#2563eb"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        </button>
+        <!-- Legend -->
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Limited</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Full</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ev)"></div>EV</div>
+        </div>
+        <!-- Map label -->
+        <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.9);backdrop-filter:blur(8px);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px">📍 MADURAI, TN</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div id="listView" class="scroll-body hidden" style="flex:1;padding:14px 14px 80px">
+    <div id="parkList"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('home')">
+      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <div class="nav-item-wrap">
+      <button class="nav-item" onclick="goTo('bookings','anim-in')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span class="nav-label">Bookings</span>
+      </button>
+      <div class="notif-badge" id="bookingNotif"></div>
+    </div>
+    <button class="nav-item" onclick="goTo('profile','anim-in')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="nav-label">Profile</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: PARK DETAIL
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="detail">
+  <div class="detail-hero" id="detailHero">
+    <div class="detail-hero-icon" id="detailEmoji">🏢</div>
+    <div class="detail-hero-overlay"></div>
+    <button class="btn-icon detail-back" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2)" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="detail-hero-info">
+      <div class="detail-hero-name" id="detailName">Meenakshi Temple Parking</div>
+      <div class="detail-hero-addr">
+        <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+        <span id="detailAddr">South Veli Street, Madurai</span>
+      </div>
+    </div>
+  </div>
+  <div class="detail-stats">
+    <div class="dstat">
+      <div class="dstat-val" id="dStatAvail">22</div>
+      <div class="dstat-lbl">Available</div>
+    </div>
+    <div class="dstat">
+      <div class="dstat-val" id="dStatTotal">60</div>
+      <div class="dstat-lbl">Total</div>
+    </div>
+    <div class="dstat">
+      <div class="dstat-val" id="dStatPrice">₹25</div>
+      <div class="dstat-lbl">Per Hour</div>
+    </div>
+    <div class="dstat">
+      <div class="dstat-val" id="dStatDist">1.2</div>
+      <div class="dstat-lbl">km Away</div>
+    </div>
+  </div>
+  <div class="scroll-body" style="padding:0 14px 14px">
+    <div class="card">
+      <div class="sec-title" style="font-size:15px">Amenities</div>
+      <div class="amenity-grid" id="amenityGrid"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title" style="font-size:15px">Opening Hours</div>
+      <div id="hoursInfo" style="font-size:14px;color:var(--text-2);line-height:1.7"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title" style="font-size:15px">Reviews</div>
+      <div id="reviewsList"></div>
+    </div>
+  </div>
+  <div class="detail-cta">
+    <button class="btn btn-outline" style="flex:0.45;background:var(--blue-light);color:var(--blue);border:none" onclick="navigate()">🧭 Navigate</button>
+    <button class="btn btn-primary" onclick="startBooking()">Book Now →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: BOOKING
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="booking">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Book Parking</div>
+  </div>
+  <div class="step-bar" id="stepBar">
+    <div class="step-item active" id="step-1"><div class="step-num">1</div><div class="step-lbl">Vehicle</div></div>
+    <div class="step-item" id="step-2"><div class="step-num">2</div><div class="step-lbl">Duration</div></div>
+    <div class="step-item" id="step-3"><div class="step-num">3</div><div class="step-lbl">Confirm</div></div>
+  </div>
+  <div class="scroll-body" id="bookingBody" style="padding:16px 14px 20px">
+    <!-- Step 1 content injected dynamically -->
+  </div>
+  <div style="padding:14px;flex-shrink:0;background:var(--card);border-top:1px solid var(--border)">
+    <button class="btn btn-primary" id="bookingNextBtn" onclick="bookingNext()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: QR TICKET
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="qr-ticket">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('home')">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Parking Ticket</div>
+    <button onclick="shareTicket()" style="background:none;border:none;font-size:13px;font-weight:700;color:var(--blue);cursor:pointer">Share</button>
+  </div>
+  <div class="scroll-body" style="padding:16px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:var(--green-light);border-radius:100px;font-size:14px;font-weight:700;color:var(--green)">
+        ✓ Booking Confirmed!
+      </div>
+    </div>
+    <div class="ticket-wrap">
+      <div class="ticket" id="ticketCard">
+        <div class="ticket-header">
+          <div class="ticket-brand">ParkLink · Digital Ticket</div>
+          <div class="ticket-parking-name" id="tParkName">Meenakshi Temple Parking</div>
+          <div class="ticket-id" id="tBookingId">BKG-2025-001234</div>
+        </div>
+        <div class="ticket-separator">
+          <div class="ticket-notch"></div>
+          <div class="ticket-separator-line"></div>
+          <div class="ticket-notch"></div>
+        </div>
+        <div class="ticket-body">
+          <div class="ticket-row">
+            <div><div class="ticket-field-lbl">Slot</div><div class="ticket-field-val" id="tSlot">B-07</div></div>
+            <div><div class="ticket-field-lbl">Vehicle</div><div class="ticket-field-val" id="tVehicle">TN 59 AB 1234</div></div>
+          </div>
+          <div class="ticket-row">
+            <div><div class="ticket-field-lbl">Entry</div><div class="ticket-field-val" id="tEntry">10:30 AM</div></div>
+            <div><div class="ticket-field-lbl">Exit</div><div class="ticket-field-val" id="tExit">12:30 PM</div></div>
+          </div>
+          <div class="ticket-row">
+            <div><div class="ticket-field-lbl">Duration</div><div class="ticket-field-val" id="tDuration">2 Hours</div></div>
+            <div><div class="ticket-field-lbl">Amount</div><div class="ticket-field-val" id="tAmount" style="color:var(--blue);font-size:18px">₹50</div></div>
+          </div>
+        </div>
+        <div class="ticket-qr-section">
+          <div id="qr-canvas"></div>
+          <div class="ticket-qr-hint">Scan this QR at entry/exit gate</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" onclick="goTo('session','anim-in')">▶ Start Parking Session</button>
+      <button class="btn" style="background:var(--surface);color:var(--text-muted)" onclick="downloadTicket()">⬇ Download Ticket</button>
+      <button class="btn" style="background:var(--surface);color:var(--text-muted)" onclick="goTo('home')">← Back to Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ACTIVE SESSION
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="session">
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="timerGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#3b82f6"/>
+        <stop offset="1" stop-color="#8b5cf6"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="top-bar" style="background:transparent;border-bottom:1px solid rgba(255,255,255,0.1)">
+    <button class="back-btn" style="background:rgba(255,255,255,0.1)" onclick="confirmEndParking()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title" style="color:white">Active Session</div>
+    <button onclick="goTo('qr-ticket','anim-in')" style="background:none;border:none;font-size:12px;font-weight:700;color:rgba(255,255,255,0.5);cursor:pointer">View Ticket</button>
+  </div>
+  <div class="scroll-body" style="padding-bottom:20px">
+    <div class="session-hero">
+      <div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:4px" id="sessionParkName">Meenakshi Temple Parking</div>
+      <div class="session-timer-wrap">
+        <svg class="session-timer-svg" viewBox="0 0 200 200">
+          <circle class="timer-bg" cx="100" cy="100" r="88"/>
+          <circle class="timer-progress" id="timerCircle" cx="100" cy="100" r="88" stroke-dasharray="552.9" stroke-dashoffset="0"/>
+        </svg>
+        <div class="session-timer-center">
+          <div class="session-time-big" id="timerDisplay">00:00</div>
+          <div class="session-time-lbl">Elapsed</div>
+        </div>
+      </div>
+      <div class="session-status">
+        <div class="session-status-dot"></div>
+        <div class="session-status-text">Parking Active</div>
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.4)" id="sessionTimeRemain">Expires at 12:30 PM</div>
+    </div>
+    <div class="session-info-strip">
+      <div class="sinfo"><div class="sinfo-val" id="sSlot">B-07</div><div class="sinfo-lbl">Slot</div></div>
+      <div class="sinfo"><div class="sinfo-val" id="sVehicle">CAR</div><div class="sinfo-lbl">Type</div></div>
+      <div class="sinfo"><div class="sinfo-val" id="sRemain">2:00</div><div class="sinfo-lbl">Remaining</div></div>
+    </div>
+    <div class="session-actions" style="margin-top:16px">
+      <button class="sact-btn" onclick="navigate()"><div class="sact-icon">🧭</div><div class="sact-lbl">Navigate</div></button>
+      <button class="sact-btn" onclick="extendParking()"><div class="sact-icon">⏱️</div><div class="sact-lbl">Extend Time</div></button>
+      <button class="sact-btn" onclick="openCCTV()"><div class="sact-icon">📹</div><div class="sact-lbl">Live CCTV</div></button>
+      <button class="sact-btn" onclick="openSplit()"><div class="sact-icon">💰</div><div class="sact-lbl">Split Cost</div></button>
+      <button class="sact-btn" onclick="toast('Security notified','info','🛡️')"><div class="sact-icon">🛡️</div><div class="sact-lbl">Security</div></button>
+      <button class="sact-btn" onclick="goTo('qr-ticket','anim-in')"><div class="sact-icon">🎫</div><div class="sact-lbl">My Ticket</div></button>
+      <button class="sact-btn" onclick="openLastMile()"><div class="sact-icon">🛺</div><div class="sact-lbl">Last Mile</div></button>
+      <button class="sact-btn" onclick="openWABot()"><div class="sact-icon">💬</div><div class="sact-lbl">WA Bot</div></button>
+    </div>
+    <div class="session-end">
+      <button class="btn btn-danger" onclick="confirmEndParking()" style="font-size:16px;padding:18px">⏹ End Parking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: BOOKINGS
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="bookings">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">My Bookings</div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showBookingTab('active',this)">Active</button>
+    <button class="tab-btn" onclick="showBookingTab('upcoming',this)">Upcoming</button>
+    <button class="tab-btn" onclick="showBookingTab('history',this)">History</button>
+  </div>
+  <div class="scroll-body" style="padding:14px 14px 80px" id="bookingsList"></div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="goTo('home')">
+      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item active" onclick="goTo('bookings')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span class="nav-label">Bookings</span>
+    </button>
+    <button class="nav-item" onclick="goTo('profile','anim-in')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="nav-label">Profile</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: PROFILE
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="profile">
+  <div class="scroll-body">
+    <div class="profile-hero">
+      <div class="profile-avatar" id="profileAvatar">A</div>
+      <div class="profile-name" id="profileName">Arun Kumar</div>
+      <div class="profile-phone" id="profilePhone">+91 98765 43210</div>
+    </div>
+    <div class="profile-stats">
+      <div class="pstat"><div class="pstat-val">12</div><div class="pstat-lbl">Trips</div></div>
+      <div class="pstat"><div class="pstat-val">8.5</div><div class="pstat-lbl">Hours</div></div>
+      <div class="pstat"><div class="pstat-val">4.9★</div><div class="pstat-lbl">Rating</div></div>
+    </div>
+    <div class="menu-section">
+      <div class="menu-section-title">My Account</div>
+      <div class="menu-item" onclick="toast('Vehicles screen coming soon','info','🚗')">
+        <div class="menu-icon">🚗</div><div class="menu-label">My Vehicles</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="goTo('bookings','anim-in')">
+        <div class="menu-icon">🎫</div><div class="menu-label">Booking History</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="toast('Payment methods screen coming soon','info','💳')">
+        <div class="menu-icon">💳</div><div class="menu-label">Payment Methods</div><div class="menu-arrow">›</div>
+      </div>
+    </div>
+
+    <!-- ── NEW FEATURES SECTION ── -->
+    <div class="menu-section">
+      <div class="menu-section-title">✨ Smart Features</div>
+      <div class="menu-item" onclick="openWABot()" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #bbf7d0">
+        <div class="menu-icon" style="background:#dcfce7;font-size:20px">💬</div>
+        <div><div class="menu-label" style="color:#065f46">WhatsApp Booking</div><div style="font-size:11px;color:#16a34a;font-weight:600">Book without installing the app</div></div>
+        <div style="font-size:10px;background:#16a34a;color:white;padding:3px 8px;border-radius:100px;font-weight:700">NEW</div>
+      </div>
+      <div class="menu-item" onclick="openSurge()" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1.5px solid #fed7aa">
+        <div class="menu-icon" style="background:#ffedd5;font-size:20px">🪔</div>
+        <div><div class="menu-label" style="color:#7c2d12">Festival Surge Forecast</div><div style="font-size:11px;color:#b45309;font-weight:600">See parking demand for next 7 days</div></div>
+        <div style="font-size:10px;background:#b45309;color:white;padding:3px 8px;border-radius:100px;font-weight:700">SMART</div>
+      </div>
+      <div class="menu-item" onclick="openSplit()" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid #ddd6fe">
+        <div class="menu-icon" style="background:#ede9fe;font-size:20px">💰</div>
+        <div><div class="menu-label" style="color:#3730a3">Split Parking</div><div style="font-size:11px;color:#6d28d9;font-weight:600">Split cost with your carpool buddy</div></div>
+        <div style="font-size:10px;background:#7c3aed;color:white;padding:3px 8px;border-radius:100px;font-weight:700">BETA</div>
+      </div>
+      <div class="menu-item" onclick="openCCTV()" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #bbf7d0">
+        <div class="menu-icon" style="background:#0a0f1e;font-size:20px">📹</div>
+        <div><div class="menu-label">Live CCTV View</div><div style="font-size:11px;color:var(--text-muted);font-weight:600">Watch your vehicle in real-time</div></div>
+        <div style="font-size:10px;background:var(--blue);color:white;padding:3px 8px;border-radius:100px;font-weight:700">LIVE</div>
+      </div>
+      <div class="menu-item" onclick="openLastMile()" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #bfdbfe">
+        <div class="menu-icon" style="background:#dbeafe;font-size:20px">🛺</div>
+        <div><div class="menu-label" style="color:#1e40af">Last Mile Ride</div><div style="font-size:11px;color:#2563eb;font-weight:600">Book Ola/Rapido from your parking</div></div>
+        <div style="font-size:10px;background:#2563eb;color:white;padding:3px 8px;border-radius:100px;font-weight:700">SMART</div>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">Preferences</div>
+      <div class="menu-item" onclick="toast('Notifications settings coming soon','info','🔔')">
+        <div class="menu-icon">🔔</div><div class="menu-label">Notifications</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="toast('Language settings coming soon','info','🌐')">
+        <div class="menu-icon">🌐</div><div class="menu-label">Language & Region</div><div class="menu-arrow">›</div>
+      </div>
+    </div>
+    <div class="menu-section" id="ownerMenuSection">
+      <div class="menu-section-title">Owner Tools</div>
+      <div class="menu-item" onclick="goTo('owner','anim-in')">
+        <div class="menu-icon">📊</div><div class="menu-label">Owner Dashboard</div><div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="goTo('add-parking','anim-in')">
+        <div class="menu-icon">➕</div><div class="menu-label">Add Parking Lot</div><div class="menu-arrow">›</div>
+      </div>
+    </div>
+    <div class="menu-section" id="adminMenuSection" style="display:none">
+      <div class="menu-section-title">Admin</div>
+      <div class="menu-item" onclick="goTo('admin','anim-in')">
+        <div class="menu-icon">🛡️</div><div class="menu-label">Admin Panel</div><div class="menu-arrow">›</div>
+      </div>
+    </div>
+    <div class="menu-section">
+      <div class="menu-item danger" onclick="signOut()">
+        <div class="menu-icon">🚪</div><div class="menu-label">Sign Out</div>
+      </div>
+    </div>
+    <div style="height:40px"></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="goTo('home')">
+      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" onclick="goTo('bookings','anim-in')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span class="nav-label">Bookings</span>
+    </button>
+    <button class="nav-item active" onclick="goTo('profile')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="nav-label">Profile</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: OWNER DASHBOARD
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="owner">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Owner Dashboard</div>
+    <button onclick="goTo('add-parking','anim-in')" style="background:var(--blue);border:none;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:700;color:white;cursor:pointer">+ Add</button>
+  </div>
+  <div class="scroll-body" style="padding-bottom:20px">
+    <div class="owner-hero">
+      <div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.5)">Welcome back,</div>
+      <div style="font-size:22px;font-weight:800;color:white" id="ownerName">Rajesh Kumar</div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Available Slots</div><div class="kpi-value" id="ownerAvail">42</div><div class="kpi-trend up">↑ 8 from yesterday</div></div>
+        <div class="kpi-card"><div class="kpi-label">Active Bookings</div><div class="kpi-value" id="ownerActive">18</div><div class="kpi-trend warn">3 expiring soon</div></div>
+        <div class="kpi-card"><div class="kpi-label">Today's Revenue</div><div class="kpi-value" id="ownerRevenue">₹1,840</div><div class="kpi-trend up">↑ 12% vs yesterday</div></div>
+        <div class="kpi-card"><div class="kpi-label">Occupancy</div><div class="kpi-value" id="ownerOccupancy">68%</div><div class="kpi-trend up">Peak hours: 6–9 PM</div></div>
+      </div>
+    </div>
+    <div style="padding:16px">
+      <div class="card">
+        <div class="sec-title" style="font-size:15px;margin-bottom:16px">🔴 Live Bookings</div>
+        <div id="livBookingsList"></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="sec-title" style="font-size:15px;margin-bottom:16px">🏢 My Parking Lots</div>
+        <div id="ownerLotsList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ADD PARKING
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="add-parking">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Add Parking Lot</div>
+  </div>
+  <div class="scroll-body" style="padding:14px 14px 80px">
+    <div class="form-section">
+      <div class="form-section-title"><span>📍</span> Basic Info</div>
+      <div class="form-field"><label class="form-label">Parking Name</label><input type="text" class="form-input" placeholder="e.g. Sri Meenakshi Parking" id="fpName"></div>
+      <div class="form-field"><label class="form-label">Address</label><input type="text" class="form-input" placeholder="Full address with landmark" id="fpAddr"></div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">City</label><input type="text" class="form-input" placeholder="Madurai" id="fpCity"></div>
+        <div class="form-field"><label class="form-label">PIN Code</label><input type="text" class="form-input" placeholder="625001" id="fpPin" inputmode="numeric"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title"><span>🅿️</span> Capacity & Pricing</div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">Car Slots</label><input type="number" class="form-input" placeholder="50" id="fpCarSlots"></div>
+        <div class="form-field"><label class="form-label">Bike Slots</label><input type="number" class="form-input" placeholder="30" id="fpBikeSlots"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">EV Slots</label><input type="number" class="form-input" placeholder="10" id="fpEvSlots"></div>
+        <div class="form-field"><label class="form-label">Hourly Rate (₹)</label><input type="number" class="form-input" placeholder="30" id="fpHourly"></div>
+      </div>
+      <div class="form-field"><label class="form-label">Daily Rate (₹)</label><input type="number" class="form-input" placeholder="200" id="fpDaily"></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title"><span>✅</span> Amenities</div>
+      <div class="toggle-grid" id="amenityToggles">
+        <div class="toggle-item" onclick="toggleAmenity(this,'cctv')"><div class="toggle-check"></div><div class="toggle-label">📹 CCTV</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'security')"><div class="toggle-check"></div><div class="toggle-label">👮 24hr Security</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'ev')"><div class="toggle-check"></div><div class="toggle-label">⚡ EV Charging</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'covered')"><div class="toggle-check"></div><div class="toggle-label">🏠 Covered</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'wheelchair')"><div class="toggle-check"></div><div class="toggle-label">♿ Wheelchair</div></div>
+        <div class="toggle-item" onclick="toggleAmenity(this,'prebook')"><div class="toggle-check"></div><div class="toggle-label">📅 Pre-booking</div></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title"><span>🕐</span> Operating Hours</div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">Open Time</label><input type="time" class="form-input" value="06:00" id="fpOpen"></div>
+        <div class="form-field"><label class="form-label">Close Time</label><input type="time" class="form-input" value="23:00" id="fpClose"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitParkingForm()" style="margin-top:4px">Submit for Verification</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ADMIN PANEL
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="admin">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Admin Panel</div>
+  </div>
+  <div class="scroll-body" style="padding-bottom:20px">
+    <div class="admin-stat-grid">
+      <div class="astat" style="border-color:var(--blue)"><div class="astat-val">1,248</div><div class="astat-lbl">Total Parks</div></div>
+      <div class="astat" style="border-color:var(--green)"><div class="astat-val">89,420</div><div class="astat-lbl">Total Users</div></div>
+      <div class="astat" style="border-color:var(--amber)"><div class="astat-val">₹4.2L</div><div class="astat-lbl">Today Revenue</div></div>
+      <div class="astat" style="border-color:var(--ev)"><div class="astat-val">72%</div><div class="astat-lbl">Avg Occupancy</div></div>
+    </div>
+    <div style="padding:0 16px 16px">
+      <div class="card">
+        <div class="sec-title" style="font-size:15px;margin-bottom:16px">📊 City-wise Utilization</div>
+        <div id="cityBars"></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="sec-title" style="font-size:15px;margin-bottom:16px">⏳ Pending Verifications</div>
+        <div id="pendingVerify"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: WHATSAPP BOOKING BOT  (Feature 1)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="whatsapp-bot">
+  <div class="wa-header top-bar cctv-header" style="background:linear-gradient(135deg,#075E54,#128C7E);border:none;height:auto;padding:14px 16px">
+    <button class="back-btn" style="background:rgba(255,255,255,0.15)" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="wa-avatar">🤖</div>
+    <div style="flex:1">
+      <div class="wa-title">ParkLink Bot</div>
+      <div class="wa-status"><span style="width:7px;height:7px;border-radius:50%;background:#25D366;display:inline-block"></span> Online</div>
+    </div>
+    <button onclick="toast('Bot settings coming soon','info','⚙️')" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:20px;cursor:pointer">⋮</button>
+  </div>
+
+  <div class="wa-chat" id="waChat">
+    <!-- Populated by JS -->
+  </div>
+
+  <div style="background:#F0F0F0;padding:6px 10px 0;flex-shrink:0" id="waQuickReplies">
+    <!-- Quick reply chips -->
+  </div>
+
+  <div class="wa-input-bar">
+    <textarea class="wa-input" id="waInput" placeholder="Type a message…" rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();waSend()}"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+    <button class="wa-send" onclick="waSend()">
+      <svg width="22" height="22" fill="white" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: FESTIVAL SURGE PREDICTION  (Feature 2)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="surge">
+  <div class="top-bar" style="background:linear-gradient(135deg,#7c2d12,#b45309);border:none">
+    <button class="back-btn" style="background:rgba(255,255,255,0.15)" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title" style="color:white">Festival Surge Forecast</div>
+    <button onclick="toast('Alerts enabled for upcoming events','success','🔔')" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;padding:7px 10px;color:white;font-size:12px;cursor:pointer">🔔 Alert</button>
+  </div>
+  <div class="scroll-body" style="padding-bottom:20px">
+    <div class="surge-hero">
+      <div class="surge-badge">🗓️ Next 7 Days · Madurai Region</div>
+      <div class="surge-title">Parking Demand<br>Forecast</div>
+      <div class="surge-sub">Book early — festival crowds fill lots 3–4 hrs before events</div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="surge-timeline">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px">📅 Upcoming Events</div>
+      <div id="surgeTimeline"></div>
+    </div>
+
+    <!-- Forecast cards -->
+    <div style="padding:0 16px 16px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:12px">🔥 High-Demand Alerts</div>
+      <div id="forecastCards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: SPLIT PARKING  (Feature 3)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="split">
+  <div class="top-bar" style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:none">
+    <button class="back-btn" style="background:rgba(255,255,255,0.15)" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title" style="color:white">Split Parking</div>
+    <span class="badge badge-ev" style="font-size:11px">Beta</span>
+  </div>
+  <div class="scroll-body" style="padding:14px 14px 80px">
+
+    <!-- Active split card -->
+    <div class="split-active-card" id="splitActiveCard">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Current Booking to Split</div>
+      <div style="font-size:17px;font-weight:800;color:white;margin-bottom:3px" id="splitParkName">Select a booking first</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:16px" id="splitBookingMeta">No active booking</div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;margin-bottom:4px">Total Amount</div>
+          <div style="font-size:24px;font-weight:800;color:white;font-family:var(--font-mono)" id="splitTotalAmt">₹0</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;margin-bottom:4px">Your Share</div>
+          <div style="font-size:24px;font-weight:800;color:#a5b4fc;font-family:var(--font-mono)" id="splitYourShare">₹0</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;text-transform:uppercase;margin-bottom:4px">Their Share</div>
+          <div style="font-size:24px;font-weight:800;color:#86efac;font-family:var(--font-mono)" id="splitTheirShare">₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contacts -->
+    <div style="font-size:15px;font-weight:800;margin-bottom:10px;margin-top:4px">Select Carpool Partner</div>
+    <div id="splitContacts"></div>
+
+    <!-- UPI method -->
+    <div style="font-size:15px;font-weight:800;margin-bottom:10px;margin-top:16px">Pay via</div>
+    <div class="split-upi-row">
+      <div class="upi-btn selected" onclick="selectUPI(this,'gpay')"><div class="upi-icon">🅖</div><div class="upi-name">GPay</div></div>
+      <div class="upi-btn" onclick="selectUPI(this,'phonepe')"><div class="upi-icon">💜</div><div class="upi-name">PhonePe</div></div>
+      <div class="upi-btn" onclick="selectUPI(this,'paytm')"><div class="upi-icon">💙</div><div class="upi-name">Paytm</div></div>
+      <div class="upi-btn" onclick="selectUPI(this,'upi')"><div class="upi-icon">🏦</div><div class="upi-name">UPI ID</div></div>
+    </div>
+
+    <!-- Send request -->
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" style="background:linear-gradient(135deg,#4338ca,#7c3aed);box-shadow:0 8px 24px rgba(67,56,202,0.4)" onclick="sendSplitRequest()">
+        📤 Send Split Request via WhatsApp
+      </button>
+      <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:10px">
+        Partner gets a WhatsApp notification to pay their share
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: LIVE CCTV  (Feature 4)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="cctv">
+  <div class="top-bar cctv-header" style="background:#0a0a0a">
+    <button class="back-btn" style="background:#1a1a2e" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title" style="color:white">Live CCTV — <span id="cctvParkLabel" style="color:#00ff41">Anna Nagar Hub</span></div>
+    <div class="cctv-live-badge">
+      <div class="rec-dot"></div>
+      <span style="font-size:10px;color:#ef4444;font-weight:700;font-family:monospace">LIVE</span>
+    </div>
+  </div>
+
+  <div class="cctv-grid" id="cctvGrid">
+    <!-- Feeds populated by JS -->
+  </div>
+
+  <div class="cctv-controls">
+    <div class="cctv-status-bar">
+      <div style="color:rgba(255,255,255,0.5);font-size:11px;font-family:monospace" id="cctvTimestamp">00:00:00 · 4 cameras</div>
+      <div style="color:#00ff41;font-size:11px;font-family:monospace">● SECURE</div>
+    </div>
+    <div class="cctv-btn-row">
+      <button class="cctv-btn" onclick="requestClip()"><div class="cctv-btn-icon">🎬</div>Request Clip</button>
+      <button class="cctv-btn" onclick="cctvSnapshot()"><div class="cctv-btn-icon">📸</div>Snapshot</button>
+      <button class="cctv-btn" onclick="cctvAlert()"><div class="cctv-btn-icon">🚨</div>Alert Guard</button>
+      <button class="cctv-btn" onclick="cctvFullscreen()"><div class="cctv-btn-icon">⛶</div>Full View</button>
+    </div>
+    <div class="cctv-clip-preview" id="clipPreview">
+      <div style="color:white;font-size:13px;font-weight:700;margin-bottom:6px">🎬 Clip Preview — Last 30 sec</div>
+      <div class="clip-timeline">
+        <div class="clip-progress"></div>
+        <div class="clip-markers">
+          <div class="clip-mark"></div><div class="clip-mark"></div><div class="clip-mark"></div>
+          <div class="clip-mark"></div><div class="clip-mark"></div><div class="clip-mark"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-sm" style="background:#1a1a2e;color:white;border:1px solid #2d2d4e;flex:1" onclick="toast('Clip saved to gallery','success','📥')">⬇ Save</button>
+        <button class="btn btn-sm" style="background:#1a1a2e;color:white;border:1px solid #2d2d4e;flex:1" onclick="toast('Clip shared','success','📤')">📤 Share</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: LAST MILE LINK  (Feature 5)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="lastmile">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2.5" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="top-bar-title">Last Mile Ride</div>
+    <span class="badge badge-green" style="font-size:11px">Live ETAs</span>
+  </div>
+  <div class="scroll-body" style="padding:14px 14px 80px">
+
+    <!-- Journey preview -->
+    <div class="card-dark" style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">Your Journey</div>
+      <div class="lm-journey">
+        <div class="lm-stop">
+          <div class="lm-stop-dot" style="background:var(--blue)"></div>
+          <div class="lm-stop-label">Parked at</div>
+          <div class="lm-stop-name" id="lmFromName" style="font-size:11px">Anna Nagar Hub</div>
+        </div>
+        <div class="lm-arrow"></div>
+        <div class="lm-stop">
+          <div class="lm-stop-dot" style="background:var(--green)"></div>
+          <div class="lm-stop-label">Going to</div>
+          <div class="lm-stop-name" id="lmToName" style="font-size:11px">Your Destination</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Destination input -->
+    <div class="lm-dest-input">
+      <input class="lm-dest-field" id="lmDestInput" placeholder="🔍 Where are you going?" oninput="lmFilterDest(this.value)">
+    </div>
+
+    <!-- Quick destinations -->
+    <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px">
+      <div class="filter-chip" onclick="setDest('Meenakshi Temple')">🛕 Temple</div>
+      <div class="filter-chip" onclick="setDest('Madurai Airport')">✈️ Airport</div>
+      <div class="filter-chip" onclick="setDest('Periyar Bus Stand')">🚌 Bus Stand</div>
+      <div class="filter-chip" onclick="setDest('Samayanallur')">🏭 IT Park</div>
+      <div class="filter-chip" onclick="setDest('Madurai Junction')">🚆 Railway</div>
+    </div>
+
+    <!-- Map preview -->
+    <div class="lm-map-preview" id="lmMapPreview">
+      <svg class="lm-route-svg" viewBox="0 0 380 130">
+        <path id="lmRoutePath" d="M80,65 Q150,20 200,60 Q250,100 300,45" stroke="#2563eb" stroke-width="3" fill="none" stroke-dasharray="8,4" opacity="0.6"/>
+        <circle cx="80" cy="65" r="6" fill="#2563eb"/>
+        <circle cx="300" cy="45" r="6" fill="#10b981"/>
+      </svg>
+      <div class="lm-from-pin">📍</div>
+      <div class="lm-to-pin" id="lmToPin">📌</div>
+      <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.9);border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--text)" id="lmDistLabel">— Select destination —</div>
+    </div>
+
+    <!-- Cab options -->
+    <div style="font-size:16px;font-weight:800;margin-bottom:10px">Available Rides</div>
+    <div id="cabList"></div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT — FULL BACKEND SIMULATION + LOGIC
+══════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+/* ────────────────────────────────────────────────
+   STATE / DB SIMULATION
+──────────────────────────────────────────────── */
+const DB = {
+  currentUser: null,
+  currentRole: 'driver',
+  currentPark: null,
+  currentBooking: null,
+  sessionActive: false,
+  sessionTimer: null,
+  sessionStart: null,
+  sessionDuration: 0, // minutes
+  bookingStep: 1,
+  selectedVehicle: null,
+  selectedDuration: null,
+  selectedSlot: null,
+  selectedBookingType: 'now',
+  generatedOTP: '',
+  mobileNumber: '',
+  resendInterval: null,
+
+  parks: [
+    { id:'P001', name:'Anna Nagar Parking Hub', addr:'Anna Nagar Main Rd', city:'Madurai', total:40, available:28, price:30, dailyPrice:200, dist:0.8, amenities:['cctv','security','ev','prebook'], ev:true, hours:'6:00 AM – 11:00 PM', rating:4.5, reviews:18, emoji:'🏢', color:'#10b981' },
+    { id:'P002', name:'Race Course Complex', addr:'Race Course Road', city:'Madurai', total:20, available:7, price:20, dailyPrice:150, dist:1.5, amenities:['cctv','covered'], ev:false, hours:'24 Hours', rating:4.2, reviews:31, emoji:'🅿️', color:'#f59e0b' },
+    { id:'P003', name:'Meenakshi Temple Parking', addr:'South Veli Street', city:'Madurai', total:60, available:0, price:25, dailyPrice:180, dist:1.2, amenities:['cctv','security','wheelchair'], ev:false, hours:'5:00 AM – 10:00 PM', rating:4.7, reviews:52, emoji:'🛕', color:'#ef4444' },
+    { id:'P004', name:'Bypass EV Park', addr:'Madurai Bypass Rd', city:'Madurai', total:30, available:22, price:40, dailyPrice:280, dist:3.1, amenities:['cctv','security','ev','covered','wheelchair','prebook'], ev:true, hours:'24 Hours', rating:4.8, reviews:9, emoji:'⚡', color:'#8b5cf6' },
+    { id:'P005', name:'Town Hall Multi-Level', addr:'West Veli Street', city:'Madurai', total:80, available:35, price:35, dailyPrice:220, dist:2.0, amenities:['cctv','security','covered','prebook','wheelchair'], ev:false, hours:'6:00 AM – 10:00 PM', rating:4.3, reviews:44, emoji:'🏛️', color:'#10b981' }
+  ],
+
+  vehicles: [
+    { id:'V001', type:'car', name:'Honda City', reg:'TN 59 AB 1234', icon:'🚗' },
+    { id:'V002', type:'bike', name:'Royal Enfield', reg:'TN 59 CD 5678', icon:'🏍️' },
+    { id:'V003', type:'ev', name:'Tata Nexon EV', reg:'TN 59 EV 9999', icon:'⚡🚗' }
+  ],
+
+  bookings: [
+    { id:'BKG-001', parkId:'P001', parkName:'Anna Nagar Parking Hub', slot:'A-12', vehicle:'TN 59 AB 1234', type:'car', start:'09:00 AM', end:'11:00 AM', duration:'2 hrs', amount:60, status:'active', date:'Today' },
+    { id:'BKG-002', parkId:'P004', parkName:'Bypass EV Park', slot:'EV-03', vehicle:'TN 59 EV 9999', type:'ev', start:'02:00 PM', end:'04:00 PM', duration:'2 hrs', amount:80, status:'upcoming', date:'Today' },
+    { id:'BKG-003', parkId:'P002', parkName:'Race Course Complex', slot:'B-07', vehicle:'TN 59 AB 1234', type:'car', start:'10:00 AM', end:'12:00 PM', duration:'2 hrs', amount:40, status:'completed', date:'Yesterday' },
+    { id:'BKG-004', parkId:'P001', parkName:'Anna Nagar Parking Hub', slot:'A-08', vehicle:'TN 59 CD 5678', type:'bike', start:'03:00 PM', end:'05:00 PM', duration:'2 hrs', amount:20, status:'completed', date:'2 days ago' }
+  ]
+};
+
+/* ────────────────────────────────────────────────
+   MAP MARKER POSITIONS (% of container)
+──────────────────────────────────────────────── */
+const MARKER_POS = {
+  P001: { x: 28, y: 22 },
+  P002: { x: 55, y: 38 },
+  P003: { x: 42, y: 55 },
+  P004: { x: 72, y: 65 },
+  P005: { x: 35, y: 72 }
+};
+
+/* ────────────────────────────────────────────────
+   NAVIGATION
+──────────────────────────────────────────────── */
+let screenHistory = [];
+
+function goTo(id, anim='anim-in') {
+  const prev = document.querySelector('.screen.active');
+  const next = document.getElementById(id);
+  if (!next || prev === next) return;
+  if (prev) prev.classList.remove('active');
+  next.classList.remove('anim-in','anim-back');
+  next.classList.add('active');
+  requestAnimationFrame(() => next.classList.add(anim));
+  screenHistory.push(id);
+  // Init screens
+  if (id === 'home') initHome();
+  if (id === 'bookings') initBookings('active');
+  if (id === 'owner') initOwner();
+  if (id === 'admin') initAdmin();
+  if (id === 'qr-ticket') initQRTicket();
+}
+
+function goBack() {
+  screenHistory.pop();
+  const prev = screenHistory[screenHistory.length-1] || 'home';
+  const curr = document.querySelector('.screen.active');
+  const target = document.getElementById(prev);
+  if (curr) curr.classList.remove('active');
+  target.classList.remove('anim-in','anim-back');
+  target.classList.add('active');
+  requestAnimationFrame(() => target.classList.add('anim-back'));
+  if (prev === 'home') initHome();
+}
+
+/* ────────────────────────────────────────────────
+   TOAST SYSTEM
+──────────────────────────────────────────────── */
+function toast(msg, type='info', icon='ℹ️') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.innerHTML = `<div class="toast-icon">${icon}</div><div>${msg}</div>`;
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('removing');
+    setTimeout(() => el.remove(), 250);
+  }, 3200);
+}
+
+/* ────────────────────────────────────────────────
+   LOADER
+──────────────────────────────────────────────── */
+function showLoader(text='Please wait…') {
+  document.getElementById('loaderText').textContent = text;
+  document.getElementById('globalLoader').classList.remove('hidden');
+}
+function hideLoader() {
+  document.getElementById('globalLoader').classList.add('hidden');
+}
+
+/* ────────────────────────────────────────────────
+   MODALS
+──────────────────────────────────────────────── */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ────────────────────────────────────────────────
+   SPLASH → ONBOARDING
+──────────────────────────────────────────────── */
+let obCurrent = 0;
+setTimeout(() => goTo('onboarding'), 2600);
+
+function obNextSlide() {
+  const wrap = document.getElementById('obWrap');
+  if (obCurrent < 2) {
+    obCurrent++;
+    wrap.scrollTo({ left: obCurrent * wrap.offsetWidth, behavior:'smooth' });
+    document.querySelectorAll('.ob-dot').forEach((d,i) => d.classList.toggle('active', i===obCurrent));
+    if (obCurrent === 2) document.getElementById('obNext').textContent = 'Get Started →';
+  } else {
+    goTo('login');
+  }
+}
+
+/* ────────────────────────────────────────────────
+   LOGIN / AUTH BACKEND SIMULATION
+──────────────────────────────────────────────── */
+function setRole(role, btn) {
+  DB.currentRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function googleLogin() {
+  showLoader('Connecting to Google…');
+  setTimeout(() => {
+    hideLoader();
+    const names = ['Arun Kumar','Priya Nair','Ramesh S','Kavitha M'];
+    DB.currentUser = { name: names[Math.floor(Math.random()*names.length)], phone:'+91 98765 43210', method:'google' };
+    toast('Google login successful!', 'success', '✅');
+    routeByRole();
+  }, 1800);
+}
+
+function appleLogin() {
+  showLoader('Connecting to Apple…');
+  setTimeout(() => {
+    hideLoader();
+    DB.currentUser = { name:'User', phone:'', method:'apple' };
+    toast('Apple login successful!', 'success', '✅');
+    routeByRole();
+  }, 1800);
+}
+
+function sendOTP() {
+  const num = document.getElementById('mobileInput').value.trim();
+  if (!/^\d{10}$/.test(num)) { toast('Enter a valid 10-digit mobile number','error','❌'); return; }
+  DB.mobileNumber = num;
+  DB.generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
+  showLoader('Sending OTP…');
+  setTimeout(() => {
+    hideLoader();
+    document.getElementById('loginStep1').classList.add('hidden');
+    document.getElementById('loginStep2').classList.remove('hidden');
+    document.getElementById('otpSentMsg').textContent = `OTP sent to +91 ${num.slice(0,5)}XXXXX`;
+    toast(`OTP: ${DB.generatedOTP} (Demo mode)`, 'info', '📱');
+    document.querySelectorAll('.otp-box')[0].focus();
+    startResendTimer();
+  }, 1500);
+}
+
+function verifyOTP() {
+  const boxes = document.querySelectorAll('.otp-box');
+  const entered = Array.from(boxes).map(b=>b.value).join('');
+  if (entered.length < 6) { toast('Enter complete 6-digit OTP','warn','⚠️'); return; }
+  showLoader('Verifying OTP…');
+  setTimeout(() => {
+    hideLoader();
+    if (entered === DB.generatedOTP) {
+      document.getElementById('otpError').classList.add('hidden');
+      boxes.forEach(b => b.classList.add('filled'));
+      DB.currentUser = { name: 'Arun Kumar', phone:`+91 ${DB.mobileNumber}`, method:'otp' };
+      toast('OTP verified successfully!','success','✅');
+      setTimeout(() => routeByRole(), 700);
+    } else {
+      document.getElementById('otpError').classList.remove('hidden');
+      boxes.forEach(b => { b.value=''; b.classList.remove('filled'); });
+      boxes[0].focus();
+      toast('Wrong OTP. Try again','error','❌');
+    }
+  }, 1200);
+}
+
+function routeByRole() {
+  if (DB.currentRole === 'owner') { goTo('owner','anim-in'); return; }
+  if (DB.currentRole === 'admin') { goTo('admin','anim-in'); return; }
+  goTo('home','anim-in');
+  updateProfileUI();
+}
+
+function startResendTimer() {
+  clearInterval(DB.resendInterval);
+  let secs = 30;
+  document.getElementById('resendCount').textContent = secs;
+  document.getElementById('resendTimer').classList.remove('hidden');
+  document.getElementById('resendBtn').classList.add('hidden');
+  DB.resendInterval = setInterval(() => {
+    secs--;
+    document.getElementById('resendCount').textContent = secs;
+    if (secs <= 0) {
+      clearInterval(DB.resendInterval);
+      document.getElementById('resendTimer').classList.add('hidden');
+      document.getElementById('resendBtn').classList.remove('hidden');
+    }
+  }, 1000);
+}
+
+function resendOTP() {
+  DB.generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
+  showLoader('Resending OTP…');
+  setTimeout(() => {
+    hideLoader();
+    toast(`New OTP: ${DB.generatedOTP} (Demo)`, 'info', '📱');
+    startResendTimer();
+    document.querySelectorAll('.otp-box').forEach(b => { b.value=''; b.classList.remove('filled'); });
+    document.getElementById('otpError').classList.add('hidden');
+  }, 1000);
+}
+
+function backToMobile() {
+  document.getElementById('loginStep2').classList.add('hidden');
+  document.getElementById('loginStep1').classList.remove('hidden');
+  clearInterval(DB.resendInterval);
+}
+
+function otpMove(el, idx) {
+  if (el.value.length >= 1) {
+    el.classList.add('filled');
+    const boxes = document.querySelectorAll('.otp-box');
+    if (idx < 5) boxes[idx+1].focus();
+    else verifyOTP();
+  }
+}
+
+function otpBack(e, idx) {
+  if (e.key === 'Backspace') {
+    const boxes = document.querySelectorAll('.otp-box');
+    boxes[idx].value = '';
+    boxes[idx].classList.remove('filled');
+    if (idx > 0) boxes[idx-1].focus();
+  }
+}
+
+function signOut() {
+  DB.currentUser = null;
+  DB.sessionActive = false;
+  if (DB.sessionTimer) clearInterval(DB.sessionTimer);
+  // Reset login
+  document.getElementById('loginStep1').classList.remove('hidden');
+  document.getElementById('loginStep2').classList.add('hidden');
+  document.getElementById('mobileInput').value = '';
+  document.querySelectorAll('.otp-box').forEach(b=>b.value='');
+  goTo('login','anim-in');
+  toast('Signed out successfully','info','👋');
+}
+
+/* ────────────────────────────────────────────────
+   HOME — MAP & LIST
+──────────────────────────────────────────────── */
+let mapInterval = null;
+
+function initHome() {
+  const user = DB.currentUser;
+  if (user) {
+    document.getElementById('homeUserName').textContent = (user.name || 'User') + ' 👋';
+    document.getElementById('homeAvatar').textContent = (user.name||'U')[0].toUpperCase();
+  }
+  renderMapMarkers();
+  renderParkList(DB.parks);
+  if (!mapInterval) {
+    mapInterval = setInterval(() => {
+      DB.parks.forEach(p => {
+        if (p.available > 0) {
+          const delta = (Math.random() > 0.5 ? 1 : -1);
+          p.available = Math.max(0, Math.min(p.total, p.available + delta));
+        }
+      });
+      renderMapMarkers();
+      renderParkList(DB.parks);
+    }, 8000);
+  }
+}
+
+function getParkColor(p) {
+  if (p.ev && p.amenities.includes('ev')) return 'ev';
+  if (p.available === 0) return 'red';
+  if (p.available / p.total < 0.3) return 'amber';
+  return 'green';
+}
+
+function renderMapMarkers() {
+  const container = document.getElementById('mapMarkers');
+  if (!container) return;
+  container.innerHTML = '';
+  DB.parks.forEach(p => {
+    const pos = MARKER_POS[p.id] || { x:50, y:50 };
+    const cls = getParkColor(p);
+    const label = p.ev ? '⚡' : (p.available === 0 ? '🔴' : p.available <= 5 ? '🟡' : '🟢');
+    const div = document.createElement('div');
+    div.className = `map-marker marker-${cls}`;
+    div.style.cssText = `left:${pos.x}%;top:${pos.y}%;`;
+    div.innerHTML = `<div class="marker-pin">${label} ${p.available}</div>`;
+    div.onclick = (e) => { e.stopPropagation(); showMapPopup(p, pos); };
+    container.appendChild(div);
+  });
+}
+
+function showMapPopup(park, pos) {
+  const popup = document.getElementById('mapPopup');
+  const cls = getParkColor(park);
+  const clsColor = cls === 'green' ? 'badge-green' : cls === 'amber' ? 'badge-amber' : cls === 'red' ? 'badge-red' : 'badge-ev';
+  popup.innerHTML = `
+    <button class="map-popup-close" onclick="document.getElementById('mapPopup').classList.add('hidden')">✕</button>
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px;padding-right:20px">${park.name}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">${park.addr}</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <span class="badge ${clsColor}">${park.available} slots</span>
+      <span class="badge badge-blue">₹${park.price}/hr</span>
+      ${park.ev ? '<span class="badge badge-ev">⚡ EV</span>' : ''}
+    </div>
+    <button class="btn btn-primary btn-sm" style="width:100%" onclick="openParkDetail('${park.id}')">Book Now →</button>
+  `;
+  popup.style.left = `${Math.min(pos.x, 65)}%`;
+  popup.style.top = `${Math.max(pos.y - 40, 10)}%`;
+  popup.classList.remove('hidden');
+}
+
+function renderParkList(parks) {
+  const el = document.getElementById('parkList');
+  if (!el) return;
+  el.innerHTML = parks.map(p => {
+    const cls = getParkColor(p);
+    const clsBadge = cls === 'green' ? 'badge-green' : cls === 'amber' ? 'badge-amber' : cls === 'red' ? 'badge-red' : 'badge-ev';
+    const fillPct = Math.round((1 - p.available/p.total)*100);
+    const fillColor = p.available===0 ? 'var(--red)' : p.available/p.total < 0.3 ? 'var(--amber)' : 'var(--green)';
+    return `
+    <div class="park-card" onclick="openParkDetail('${p.id}')">
+      <div class="park-card-top">
+        <div class="park-icon" style="background:${p.color}20">${p.emoji}</div>
+        <div class="park-info">
+          <div class="park-name">${p.name}</div>
+          <div class="park-addr">📍 ${p.addr} · ${p.dist} km</div>
+          <div class="park-badges">
+            <span class="badge ${clsBadge}">${p.available > 0 ? p.available+' free' : 'Full'}</span>
+            <span class="badge badge-blue">₹${p.price}/hr</span>
+            ${p.ev ? '<span class="badge badge-ev">⚡ EV</span>' : ''}
+            ${p.amenities.includes('cctv') ? '<span class="badge" style="background:#f0f4ff;color:#64748b">📹 CCTV</span>' : ''}
+          </div>
+        </div>
+      </div>
+      <div class="slot-bar"><div class="slot-fill" style="width:${fillPct}%;background:${fillColor}"></div></div>
+      <div class="park-stats">
+        <div class="park-stat"><div class="park-stat-val">${p.available}</div><div class="park-stat-lbl">Available</div></div>
+        <div class="park-stat"><div class="park-stat-val">${p.total}</div><div class="park-stat-lbl">Total</div></div>
+        <div class="park-stat"><div class="park-stat-val">₹${p.price}</div><div class="park-stat-lbl">Per Hour</div></div>
+        <div class="park-stat"><div class="park-stat-val">⭐${p.rating}</div><div class="park-stat-lbl">Rating</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchView(view) {
+  document.getElementById('mapView').classList.toggle('hidden', view !== 'map');
+  document.getElementById('listView').classList.toggle('hidden', view !== 'list');
+  document.getElementById('mapViewBtn').classList.toggle('active', view === 'map');
+  document.getElementById('listViewBtn').classList.toggle('active', view === 'list');
+}
+
+function filterParks(type, el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  let filtered = [...DB.parks];
+  if (type === 'nearest') filtered.sort((a,b) => a.dist - b.dist);
+  else if (type === 'cheapest') filtered.sort((a,b) => a.price - b.price);
+  else if (type === 'available') filtered = filtered.filter(p => p.available > 0);
+  else if (type === 'ev') filtered = filtered.filter(p => p.ev);
+  else if (type === 'cctv') filtered = filtered.filter(p => p.amenities.includes('cctv'));
+  renderParkList(filtered);
+}
+
+function onSearch(val) {
+  if (val.length < 2) { renderParkList(DB.parks); return; }
+  const filtered = DB.parks.filter(p =>
+    p.name.toLowerCase().includes(val.toLowerCase()) ||
+    p.addr.toLowerCase().includes(val.toLowerCase())
+  );
+  renderParkList(filtered);
+}
+
+function doSearch() {
+  const val = document.getElementById('searchInput').value.trim();
+  if (!val) { toast('Enter a location to search','warn','🔍'); return; }
+  showLoader(`Finding parking near "${val}"…`);
+  setTimeout(() => {
+    hideLoader();
+    switchView('list');
+    onSearch(val);
+    toast(`Showing results near ${val}`,'success','📍');
+  }, 1200);
+}
+
+function centerMap() {
+  toast('Centering on your location…','info','📍');
+  const markers = document.getElementById('mapMarkers');
+  if (markers) { markers.style.animation='none'; setTimeout(()=>markers.style.animation='', 100); }
+}
+
+/* ────────────────────────────────────────────────
+   PARK DETAIL
+──────────────────────────────────────────────── */
+function openParkDetail(parkId) {
+  DB.currentPark = DB.parks.find(p => p.id === parkId);
+  if (!DB.currentPark) return;
+  const p = DB.currentPark;
+  document.getElementById('detailName').textContent = p.name;
+  document.getElementById('detailAddr').textContent = p.addr + ', ' + p.city;
+  document.getElementById('detailEmoji').textContent = p.emoji;
+  document.getElementById('detailHero').style.background = `linear-gradient(135deg, ${p.color}88, ${p.color})`;
+  document.getElementById('dStatAvail').textContent = p.available;
+  document.getElementById('dStatTotal').textContent = p.total;
+  document.getElementById('dStatPrice').textContent = '₹'+p.price;
+  document.getElementById('dStatDist').textContent = p.dist;
+
+  const amenityMap = { cctv:'📹 CCTV', security:'👮 Security', ev:'⚡ EV Charging', covered:'🏠 Covered', wheelchair:'♿ Accessible', prebook:'📅 Pre-book' };
+  const grid = document.getElementById('amenityGrid');
+  grid.innerHTML = Object.entries(amenityMap).map(([k,v]) => {
+    const has = p.amenities.includes(k);
+    return `<div class="amenity-item" style="${has?'':'opacity:0.4'}"><span>${v}</span>${has?'<span style="margin-left:auto;color:var(--green);font-size:12px;font-weight:700">✓</span>':''}</div>`;
+  }).join('');
+
+  document.getElementById('hoursInfo').innerHTML = `
+    <div class="row justify-between mt8"><span>Mon – Sat</span><span class="fw-700">${p.hours}</span></div>
+    <div class="row justify-between mt8"><span>Sunday</span><span class="fw-700">${p.hours === '24 Hours' ? '24 Hours' : '8:00 AM – 9:00 PM'}</span></div>
+  `;
+
+  const reviews = [
+    { name:'Arun K', stars:5, text:'Great parking facility, well maintained and easy to find.' },
+    { name:'Priya M', stars:4, text:'Convenient location but can get crowded on weekends.' },
+    { name:'Ramesh S', stars:5, text:'EV charging worked perfectly. Highly recommended!' }
+  ].slice(0, 2);
+  document.getElementById('reviewsList').innerHTML = reviews.map(r => `
+    <div class="review-item">
+      <div class="review-header">
+        <div class="review-avatar">${r.name[0]}</div>
+        <div><div style="font-size:13px;font-weight:700">${r.name}</div><div class="review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</div></div>
+      </div>
+      <div class="review-text">${r.text}</div>
+    </div>`).join('');
+
+  // Close popup if open
+  document.getElementById('mapPopup')?.classList.add('hidden');
+  goTo('detail','anim-in');
+}
+
+function navigate() {
+  const p = DB.currentPark;
+  toast(`Navigating to ${p ? p.name : 'parking'}…`, 'info', '🧭');
+}
+
+/* ────────────────────────────────────────────────
+   BOOKING FLOW
+──────────────────────────────────────────────── */
+function startBooking() {
+  const p = DB.currentPark;
+  if (!p) return;
+  if (p.available === 0) { toast('No slots available at this location','error','❌'); return; }
+  DB.bookingStep = 1;
+  DB.selectedVehicle = null;
+  DB.selectedDuration = null;
+  DB.selectedSlot = null;
+  DB.selectedBookingType = 'now';
+  renderBookingStep(1);
+  goTo('booking','anim-in');
+}
+
+function renderBookingStep(step) {
+  // Update step bar
+  [1,2,3].forEach(i => {
+    const el = document.getElementById(`step-${i}`);
+    el.classList.remove('active','done');
+    if (i < step) el.classList.add('done');
+    if (i === step) el.classList.add('active');
+    if (i < step) el.querySelector('.step-num').textContent = '✓';
+    else el.querySelector('.step-num').textContent = i;
+  });
+
+  const body = document.getElementById('bookingBody');
+  const p = DB.currentPark;
+
+  if (step === 1) {
+    body.innerHTML = `
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px">Select Vehicle</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Booking for ${p.name}</div>
+      <div class="vehicle-select" id="vehicleSelect">
+        ${DB.vehicles.map(v => `
+          <div class="vehicle-card ${v.type === 'ev' && !p.ev ? 'hidden' : ''}" onclick="selectVehicle('${v.id}',this)" id="vcard-${v.id}">
+            <div class="vehicle-icon">${v.icon}</div>
+            <div class="vehicle-info"><div class="vehicle-name">${v.name}</div><div class="vehicle-reg">${v.reg}</div></div>
+            <div class="vehicle-radio"></div>
+          </div>`).join('')}
+      </div>
+      <button class="btn" style="margin-top:12px;background:var(--surface);color:var(--blue);font-weight:700" onclick="toast('Add vehicle screen coming soon','info','🚗')">+ Add New Vehicle</button>`;
+  }
+
+  if (step === 2) {
+    body.innerHTML = `
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px">Booking Type & Duration</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">How long will you park?</div>
+      <div class="booking-type-tabs">
+        <div class="btype-tab active" onclick="setBType('now',this)" id="bt-now"><div class="btype-icon">🚀</div><div class="btype-lbl">Park Now</div></div>
+        <div class="btype-tab" onclick="setBType('prebook',this)" id="bt-prebook"><div class="btype-icon">📅</div><div class="btype-lbl">Pre-book</div></div>
+        <div class="btype-tab" onclick="setBType('daily',this)" id="bt-daily"><div class="btype-icon">🌙</div><div class="btype-lbl">Daily Pass</div></div>
+      </div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px" id="durLabel">Select Duration</div>
+      <div class="duration-grid" id="durGrid">
+        ${['30 min','1 hr','2 hrs','3 hrs','4 hrs','8 hrs'].map(d => `
+          <div class="dur-btn" onclick="selectDuration('${d}',this)">${d}</div>`).join('')}
+      </div>
+      <div style="margin-top:16px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px">Select Slot</div>
+        <button class="btn" style="background:var(--blue-light);color:var(--blue);font-weight:700;border:none" onclick="openSlotPicker()">
+          ${DB.selectedSlot ? `✅ ${DB.selectedSlot} Selected — Change` : '🅿️ Choose a Slot'}
+        </button>
+      </div>`;
+  }
+
+  if (step === 3) {
+    const v = DB.vehicles.find(v2 => v2.id === DB.selectedVehicle);
+    const dur = DB.selectedDuration || '1 hr';
+    const hrs = parseFloat(dur) || (dur.includes('30') ? 0.5 : 1);
+    const total = DB.selectedBookingType === 'daily' ? p.dailyPrice : Math.round(p.price * hrs);
+    DB.currentBooking = {
+      id: 'BKG-' + Date.now(),
+      parkId: p.id, parkName: p.name, parkAddr: p.addr,
+      slot: DB.selectedSlot || autoAssignSlot(),
+      vehicle: v ? v.reg : 'Unknown',
+      vehicleType: v ? v.type : 'car',
+      duration: dur, amount: total,
+      start: new Date(), status: 'upcoming',
+      durationMins: DB.selectedBookingType === 'daily' ? 1440 : Math.round(hrs * 60)
+    };
+    const startTime = new Date(); 
+    const endTime = new Date(startTime.getTime() + DB.currentBooking.durationMins * 60000);
+    const fmtTime = (d) => d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    body.innerHTML = `
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px">Booking Summary</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Review your booking details</div>
+      <div class="booking-summary">
+        <div class="bsum-row"><span class="bsum-lbl">Parking</span><span class="bsum-val">${p.name}</span></div>
+        <div class="bsum-row"><span class="bsum-lbl">Slot</span><span class="bsum-val">🅿️ ${DB.currentBooking.slot}</span></div>
+        <div class="bsum-row"><span class="bsum-lbl">Vehicle</span><span class="bsum-val">${DB.currentBooking.vehicle}</span></div>
+        <div class="bsum-row"><span class="bsum-lbl">Entry</span><span class="bsum-val">${fmtTime(startTime)}</span></div>
+        <div class="bsum-row"><span class="bsum-lbl">Exit</span><span class="bsum-val">${fmtTime(endTime)}</span></div>
+        <div class="bsum-row"><span class="bsum-lbl">Duration</span><span class="bsum-val">${dur}</span></div>
+        <div class="bsum-row bsum-total"><span class="bsum-lbl">Total</span><span class="bsum-val">₹${total}</span></div>
+      </div>
+      <div style="margin-top:14px;padding:14px;background:var(--amber-light);border-radius:12px;font-size:13px;color:#92400e;display:flex;gap:8px;align-items:flex-start">
+        <span>💳</span><span>Pay on arrival at the parking lot. Payment via cash, UPI, or card accepted.</span>
+      </div>`;
+    document.getElementById('bookingNextBtn').textContent = '✅ Confirm Booking';
+  }
+}
+
+function selectVehicle(id, el) {
+  document.querySelectorAll('.vehicle-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  DB.selectedVehicle = id;
+}
+
+function selectDuration(d, el) {
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  DB.selectedDuration = d;
+}
+
+function setBType(type, el) {
+  DB.selectedBookingType = type;
+  document.querySelectorAll('.btype-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const lbl = document.getElementById('durLabel');
+  if (type === 'daily') { lbl.textContent = `Daily Pass — ₹${DB.currentPark.dailyPrice}`; }
+  else if (type === 'prebook') { lbl.textContent = 'Select Duration (Pre-book)'; }
+  else { lbl.textContent = 'Select Duration'; }
+}
+
+function openSlotPicker() {
+  const p = DB.currentPark;
+  const grid = document.getElementById('slotGrid');
+  // Generate slot layout
+  const slots = [];
+  for (let i=1; i<=25; i++) {
+    const isEv = p.ev && i > 20;
+    const isOccupied = Math.random() > (p.available/p.total) && i > 2;
+    slots.push({ num: (isEv ? 'EV' : (i<=10 ? 'A' : 'B')) + '-' + String(i<=10?i:i-10).padStart(2,'0'), ev:isEv, occupied:isOccupied });
+  }
+  grid.innerHTML = slots.map((s,i) => `
+    <div class="slot-item ${s.occupied ? 'slot-occupied' : s.ev ? 'slot-ev' : 'slot-available'} ${DB.selectedSlot===s.num?'slot-selected':''}"
+         onclick="${s.occupied?'':'selectSlotItem(this,\''+s.num+'\')'}">
+      ${s.num}
+    </div>`).join('');
+  openModal('slotModal');
+}
+
+function selectSlotItem(el, slot) {
+  document.querySelectorAll('.slot-item.slot-selected').forEach(s => {
+    s.classList.remove('slot-selected');
+    s.classList.add(s.dataset.ev ? 'slot-ev' : 'slot-available');
+  });
+  el.classList.remove('slot-available','slot-ev');
+  el.classList.add('slot-selected');
+  DB.selectedSlot = slot;
+}
+
+function confirmSlot() {
+  if (!DB.selectedSlot) { toast('Please select a slot first','warn','⚠️'); return; }
+  closeModal('slotModal');
+  toast(`Slot ${DB.selectedSlot} selected`,'success','✅');
+  renderBookingStep(2); // re-render to show selected slot
+}
+
+function autoAssignSlot() {
+  const p = DB.currentPark;
+  const prefix = p.ev ? 'EV' : 'A';
+  return prefix + '-' + String(Math.floor(Math.random()*12)+1).padStart(2,'0');
+}
+
+function bookingNext() {
+  if (DB.bookingStep === 1) {
+    if (!DB.selectedVehicle) { toast('Please select a vehicle','warn','⚠️'); return; }
+    DB.bookingStep = 2;
+    renderBookingStep(2);
+    document.getElementById('bookingBody').scrollTop = 0;
+  } else if (DB.bookingStep === 2) {
+    if (!DB.selectedDuration && DB.selectedBookingType !== 'daily') { toast('Please select a duration','warn','⚠️'); return; }
+    if (!DB.selectedSlot) { DB.selectedSlot = autoAssignSlot(); }
+    DB.bookingStep = 3;
+    renderBookingStep(3);
+    document.getElementById('bookingBody').scrollTop = 0;
+    document.getElementById('bookingNextBtn').textContent = '✅ Confirm Booking';
+  } else if (DB.bookingStep === 3) {
+    confirmBooking();
+  }
+}
+
+function confirmBooking() {
+  showLoader('Confirming booking…');
+  setTimeout(() => {
+    hideLoader();
+    // Update park availability
+    const p = DB.parks.find(pk => pk.id === DB.currentPark.id);
+    if (p && p.available > 0) p.available--;
+    // Add to bookings
+    DB.bookings.unshift({ ...DB.currentBooking, status:'upcoming', date:'Today' });
+    document.getElementById('bookingNotif').style.display = 'block';
+    toast('Booking confirmed! QR ticket ready','success','🎫');
+    goTo('qr-ticket','anim-in');
+  }, 1800);
+}
+
+/* ────────────────────────────────────────────────
+   QR TICKET
+──────────────────────────────────────────────── */
+function initQRTicket() {
+  const b = DB.currentBooking;
+  if (!b) return;
+  const startTime = new Date(b.start || Date.now());
+  const endTime = new Date(startTime.getTime() + (b.durationMins||120) * 60000);
+  const fmt = (d) => d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const fmtDate = (d) => d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+  document.getElementById('tParkName').textContent = b.parkName;
+  document.getElementById('tBookingId').textContent = 'ID: ' + b.id;
+  document.getElementById('tSlot').textContent = b.slot;
+  document.getElementById('tVehicle').textContent = b.vehicle;
+  document.getElementById('tEntry').textContent = fmt(startTime);
+  document.getElementById('tExit').textContent = fmt(endTime);
+  document.getElementById('tDuration').textContent = b.duration || '2 Hrs';
+  document.getElementById('tAmount').textContent = '₹' + b.amount;
+
+  // Generate QR
+  const qrData = JSON.stringify({
+    id: b.id, park: b.parkName, addr: b.parkAddr,
+    slot: b.slot, vehicle: b.vehicle,
+    entry: fmt(startTime), exit: fmt(endTime),
+    dur: b.duration, amt: '₹'+b.amount
+  });
+  const qrEl = document.getElementById('qr-canvas');
+  qrEl.innerHTML = '';
+  if (typeof QRCode !== 'undefined') {
+    new QRCode(qrEl, { text: qrData, width:180, height:180, colorDark:'#0f172a', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  } else {
+    qrEl.innerHTML = '<div style="width:180px;height:180px;background:var(--surface);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px">📲</div>';
+  }
+
+  // Session data
+  document.getElementById('sessionParkName').textContent = b.parkName;
+  document.getElementById('sSlot').textContent = b.slot;
+  document.getElementById('sVehicle').textContent = (b.vehicleType||'car').toUpperCase();
+  document.getElementById('sessionTimeRemain').textContent = `Expires at ${fmt(endTime)}`;
+  DB.sessionStart = null;
+  DB.sessionDuration = b.durationMins || 120;
+}
+
+function downloadTicket() {
+  toast('Ticket saved to your downloads','success','⬇');
+}
+
+function shareTicket() {
+  if (navigator.share) {
+    navigator.share({ title:'ParkLink Ticket', text:`My parking at ${DB.currentBooking?.parkName}, Slot: ${DB.currentBooking?.slot}` });
+  } else {
+    toast('Ticket link copied to clipboard','success','📋');
+  }
+}
+
+/* ────────────────────────────────────────────────
+   SESSION
+──────────────────────────────────────────────── */
+function startSession() {
+  if (DB.sessionTimer) clearInterval(DB.sessionTimer);
+  DB.sessionStart = Date.now();
+  DB.sessionActive = true;
+  updateSessionDisplay();
+  DB.sessionTimer = setInterval(updateSessionDisplay, 1000);
+}
+
+function updateSessionDisplay() {
+  if (!DB.sessionStart) return;
+  const elapsed = Math.floor((Date.now() - DB.sessionStart) / 1000);
+  const totalSecs = DB.sessionDuration * 60;
+  const remaining = Math.max(0, totalSecs - elapsed);
+  const fmt = (s) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  const timerEl = document.getElementById('timerDisplay');
+  const remainEl = document.getElementById('sRemain');
+  const circle = document.getElementById('timerCircle');
+  if (timerEl) timerEl.textContent = fmt(elapsed);
+  if (remainEl) remainEl.textContent = fmt(remaining);
+  if (circle) {
+    const circumference = 552.9;
+    const progress = elapsed / totalSecs;
+    circle.style.strokeDashoffset = circumference * (1 - Math.min(progress, 1));
+  }
+  if (remaining === 300) toast('⚠️ 5 minutes remaining!','warn','⏰');
+  if (remaining === 0) { clearInterval(DB.sessionTimer); toast('Parking session expired','warn','⏱️'); }
+}
+
+// Auto-start session when screen becomes active
+const sessionObs = new MutationObserver(() => {
+  if (document.getElementById('session')?.classList.contains('active')) {
+    if (!DB.sessionActive) startSession();
+  }
+});
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('session');
+  if (el) sessionObs.observe(el, { attributes:true, attributeFilter:['class'] });
+});
+
+function extendParking() {
+  DB.sessionDuration += 60;
+  toast('Session extended by 1 hour','success','⏱️');
+}
+
+function confirmEndParking() {
+  if (confirm('End parking session now?')) {
+    clearInterval(DB.sessionTimer);
+    DB.sessionActive = false;
+    DB.sessionStart = null;
+    const b = DB.bookings[0];
+    if (b) b.status = 'completed';
+    const p = DB.parks.find(pk => pk.id === DB.currentBooking?.parkId);
+    if (p) p.available = Math.min(p.total, p.available+1);
+    toast('Parking ended. Have a safe journey!','success','✅');
+    goTo('home');
+  }
+}
+
+/* ────────────────────────────────────────────────
+   BOOKINGS HISTORY
+──────────────────────────────────────────────── */
+function initBookings(tab='active') {
+  showBookingTab(tab, document.querySelector('.tab-btn'));
+}
+
+function showBookingTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else document.querySelectorAll('.tab-btn')[['active','upcoming','history'].indexOf(tab)].classList.add('active');
+  const filtered = tab === 'history' ? DB.bookings.filter(b=>b.status==='completed') : DB.bookings.filter(b=>b.status===tab);
+  const el = document.getElementById('bookingsList');
+  if (filtered.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">📋</div><div style="font-weight:700;margin-bottom:6px">No ${tab} bookings</div><div style="font-size:13px">Your ${tab} bookings will appear here</div></div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(b => {
+    const statusBadge = b.status === 'active' ? 'badge-green' : b.status === 'upcoming' ? 'badge-blue' : 'badge-dark' ;
+    return `
+    <div class="booking-item">
+      <div class="booking-item-header">
+        <div><div class="bi-name">${b.parkName}</div><div class="bi-meta">📍 ${b.date}</div></div>
+        <span class="badge ${statusBadge}">${b.status.charAt(0).toUpperCase()+b.status.slice(1)}</span>
+      </div>
+      <div class="booking-item-body">
+        <div class="bi-detail"><div class="bi-lbl">Slot</div><div class="bi-val">${b.slot}</div></div>
+        <div class="bi-detail"><div class="bi-lbl">Vehicle</div><div class="bi-val" style="font-family:var(--font-mono);font-size:12px">${b.vehicle}</div></div>
+        <div class="bi-detail"><div class="bi-lbl">Amount</div><div class="bi-val" style="color:var(--blue)">₹${b.amount}</div></div>
+      </div>
+      <div class="booking-item-actions">
+        ${b.status==='active'?`<button class="btn btn-sm btn-primary" onclick="goTo('session','anim-in')">View Session</button>`:''}
+        ${b.status==='upcoming'?`<button class="btn btn-sm" style="background:var(--blue-light);color:var(--blue)" onclick="goTo('qr-ticket','anim-in')">View Ticket</button>`:''}
+        ${b.status==='completed'?`<button class="btn btn-sm" style="background:var(--surface);color:var(--text-muted)" onclick="rebookParking('${b.parkId}')">Re-book</button>`:''}
+        <button class="btn btn-sm" style="background:var(--surface);color:var(--text-muted);margin-left:auto" onclick="toast('Receipt feature coming soon','info','🧾')">Receipt</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function rebookParking(parkId) {
+  const p = DB.parks.find(pk => pk.id === parkId);
+  if (p) { DB.currentPark = p; goTo('booking','anim-in'); renderBookingStep(1); DB.bookingStep=1; }
+}
+
+/* ────────────────────────────────────────────────
+   PROFILE
+──────────────────────────────────────────────── */
+function updateProfileUI() {
+  const u = DB.currentUser;
+  if (!u) return;
+  const name = u.name || 'User';
+  document.getElementById('profileName').textContent = name;
+  document.getElementById('profilePhone').textContent = u.phone || '';
+  document.getElementById('profileAvatar').textContent = name[0].toUpperCase();
+  document.getElementById('homeUserName').textContent = name + ' 👋';
+  document.getElementById('homeAvatar').textContent = name[0].toUpperCase();
+  if (DB.currentRole === 'admin') {
+    document.getElementById('adminMenuSection').style.display = 'block';
+    document.getElementById('ownerMenuSection').style.display = 'none';
+  }
+}
+
+/* ────────────────────────────────────────────────
+   OWNER DASHBOARD
+──────────────────────────────────────────────── */
+function initOwner() {
+  const liveBookings = [
+    { slot:'A-05', name:'Ramesh Kumar', reg:'TN 59 AB 1234', time:'45 min left', type:'🚗' },
+    { slot:'EV-02', name:'Priya Nair', reg:'TN 59 EV 7890', time:'1:20 left', type:'⚡' },
+    { slot:'B-12', name:'Muthu S', reg:'TN 62 CD 4567', time:'2:05 left', type:'🏍️' },
+    { slot:'A-18', name:'Kavitha R', reg:'KL 01 AC 9988', time:'0:38 left', type:'🚗' }
+  ];
+  document.getElementById('livBookingsList').innerHTML = liveBookings.map(b => `
+    <div class="live-booking-row">
+      <div class="lbr-slot">${b.slot}</div>
+      <div class="lbr-info"><div class="lbr-name">${b.type} ${b.name}</div><div class="lbr-meta" style="font-family:var(--font-mono);font-size:11px">${b.reg}</div></div>
+      <div class="lbr-time">${b.time}</div>
+    </div>`).join('');
+
+  const lots = [
+    { name:'Anna Nagar Hub', slots:40, avail:28, price:30 },
+    { name:'Race Course Complex', slots:20, avail:7, price:20 }
+  ];
+  document.getElementById('ownerLotsList').innerHTML = lots.map(l => `
+    <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div class="row justify-between mb8"><span style="font-weight:700">${l.name}</span><span class="badge badge-blue">₹${l.price}/hr</span></div>
+      <div class="row justify-between"><span class="text-sm text-muted">${l.avail} / ${l.slots} available</span></div>
+      <div class="slot-bar mt8"><div class="slot-fill" style="width:${Math.round((1-l.avail/l.slots)*100)}%;background:${l.avail/l.slots < 0.3 ? 'var(--amber)' : 'var(--green)'}"></div></div>
+    </div>`).join('');
+}
+
+/* ────────────────────────────────────────────────
+   ADD PARKING FORM
+──────────────────────────────────────────────── */
+function toggleAmenity(el, key) {
+  el.classList.toggle('on');
+}
+
+function submitParkingForm() {
+  const name = document.getElementById('fpName').value.trim();
+  const addr = document.getElementById('fpAddr').value.trim();
+  if (!name || !addr) { toast('Please fill in parking name and address','warn','⚠️'); return; }
+  showLoader('Submitting for verification…');
+  setTimeout(() => {
+    hideLoader();
+    toast('Parking submitted for admin review!','success','✅');
+    goBack();
+  }, 2000);
+}
+
+/* ────────────────────────────────────────────────
+   ADMIN PANEL
+──────────────────────────────────────────────── */
+function initAdmin() {
+  const cities = [
+    { name:'Chennai', pct:87 },
+    { name:'Mumbai', pct:74 },
+    { name:'Bangalore', pct:91 },
+    { name:'Hyderabad', pct:63 },
+    { name:'Madurai', pct:58 },
+    { name:'Pune', pct:45 }
+  ];
+  document.getElementById('cityBars').innerHTML = cities.map(c => `
+    <div class="city-bar-item">
+      <div class="city-name">${c.name}</div>
+      <div class="city-bar-wrap"><div class="city-bar-fill" style="width:${c.pct}%"></div></div>
+      <div class="city-pct">${c.pct}%</div>
+    </div>`).join('');
+
+  const pending = [
+    { icon:'🏢', name:'Coimbatore Central Park', owner:'Suresh B.', loc:'Coimbatore, TN' },
+    { icon:'⚡', name:'Chennai EV Hub – OMR', owner:'TechPark Corp', loc:'Chennai, TN' },
+    { icon:'🅿️', name:'Pune IT Park Basement', owner:'Infra Pvt Ltd', loc:'Pune, MH' }
+  ];
+  document.getElementById('pendingVerify').innerHTML = pending.map(p => `
+    <div class="verify-item">
+      <div class="verify-icon">${p.icon}</div>
+      <div class="verify-info"><div class="verify-name">${p.name}</div><div class="verify-sub">${p.owner} · ${p.loc}</div></div>
+      <div class="verify-actions">
+        <button class="btn btn-sm btn-green" style="font-size:12px;padding:8px 10px" onclick="adminApprove(this,'${p.name}')">✓</button>
+        <button class="btn btn-sm btn-danger" style="font-size:12px;padding:8px 10px" onclick="adminReject(this,'${p.name}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function adminApprove(btn, name) {
+  btn.closest('.verify-item').remove();
+  toast(`${name} approved!`,'success','✅');
+}
+function adminReject(btn, name) {
+  btn.closest('.verify-item').remove();
+  toast(`${name} rejected`,'error','✕');
+}
+
+/* ════════════════════════════════════════════════
+   FEATURE 1 — WHATSAPP BOOKING BOT
+════════════════════════════════════════════════ */
+const WA = {
+  flow: null,
+  step: 0,
+  data: {},
+  typing: false
+};
+
+const WA_FLOWS = {
+  book: [
+    { bot: "👋 Hi! I'm *ParkLink Bot*.\n\nI can help you book parking instantly.\n\nWhich city are you in?", quick: ['Madurai','Chennai','Coimbatore','Mumbai'] },
+    { bot: "Great! 📍 {city}\n\nSearching parking lots near you…\n\nI found *3 available lots*:\n1️⃣ Anna Nagar Hub — ₹30/hr (28 slots)\n2️⃣ Race Course Complex — ₹20/hr (7 slots)\n3️⃣ Bypass EV Park — ₹40/hr ⚡\n\nWhich one?", quick: ['Anna Nagar Hub','Race Course','Bypass EV Park'] },
+    { bot: "✅ *{park}* selected!\n\nHow long will you park?", quick: ['1 hour','2 hours','3 hours','All day'] },
+    { bot: "Perfect! 🚗 What is your vehicle number?\n\n_(e.g. TN 59 AB 1234)_" },
+    { bot: "🎫 *Booking Confirmed!*\n\nHere is your ticket:", ticket: true, quick: ['Book another','View my bookings','Need help'] }
+  ],
+  status: [
+    { bot: "📋 *Your Active Bookings:*\n\n🟢 *BKG-001* — Anna Nagar Hub\nSlot A-12 · TN59AB1234 · Expires 11:00 AM\n\nWhat would you like to do?", quick: ['Extend time','End parking','Get directions','Back'] }
+  ],
+  help: [
+    { bot: "🆘 *ParkLink Help Menu*\n\nI can help you with:\n• 🅿️ Book parking\n• 📋 Check your bookings\n• ⏱️ Extend parking time\n• 🎫 Get your QR ticket\n• 💰 Split with a friend\n\nWhat do you need?", quick: ['Book parking','My bookings','Split parking','Talk to human'] }
+  ]
+};
+
+function initWhatsApp() {
+  const chat = document.getElementById('waChat');
+  chat.innerHTML = '';
+  WA.flow = null; WA.step = 0; WA.data = {};
+  // Date header
+  chat.innerHTML = `<div style="text-align:center;margin:8px 0"><span style="background:rgba(0,0,0,0.12);color:rgba(0,0,0,0.5);font-size:11px;padding:4px 10px;border-radius:10px">TODAY</span></div>`;
+  setTimeout(() => waBotSay("👋 Welcome to *ParkLink Bot*!\n\nI can help you *book parking*, *check your bookings*, or *split a fare* — all right here on WhatsApp!\n\nWhat would you like to do?",
+    ['🅿️ Book Parking','📋 My Bookings','🆘 Help','💰 Split Parking']), 600);
+}
+
+function waBotSay(msg, quickReplies=[], ticket=false) {
+  const chat = document.getElementById('waChat');
+  // Show typing
+  const typingEl = document.createElement('div');
+  typingEl.className = 'wa-typing';
+  typingEl.innerHTML = '<div class="wa-dot"></div><div class="wa-dot"></div><div class="wa-dot"></div>';
+  chat.appendChild(typingEl);
+  chat.scrollTop = chat.scrollHeight;
+  setTimeout(() => {
+    typingEl.remove();
+    const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const bubble = document.createElement('div');
+    bubble.className = 'wa-bubble bot';
+    let content = msg.replace(/\*([^*]+)\*/g,'<b>$1</b>').replace(/\n/g,'<br>').replace(/_([^_]+)_/g,'<i style="color:#888">$1</i>');
+    if (ticket && DB.currentBooking) {
+      const b = DB.currentBooking;
+      content += `<div class="wa-ticket-card">
+        <div class="wa-ticket-header">🎫 ParkLink Digital Ticket</div>
+        <div class="wa-ticket-body">
+          <div class="wa-ticket-row"><span>Park</span><b>${b.parkName}</b></div>
+          <div class="wa-ticket-row"><span>Slot</span><b>${b.slot}</b></div>
+          <div class="wa-ticket-row"><span>Vehicle</span><b>${b.vehicle}</b></div>
+          <div class="wa-ticket-row"><span>Duration</span><b>${b.duration}</b></div>
+          <div class="wa-ticket-row"><span>Amount</span><b style="color:#128C7E">₹${b.amount}</b></div>
+        </div>
+      </div>`;
+    }
+    bubble.innerHTML = content + `<div class="wa-bubble-time">${now} ✓✓</div>`;
+    chat.appendChild(bubble);
+    // Quick replies
+    const qrEl = document.getElementById('waQuickReplies');
+    qrEl.innerHTML = '';
+    if (quickReplies.length) {
+      const wrap = document.createElement('div');
+      wrap.className = 'wa-quick-replies';
+      quickReplies.forEach(q => {
+        const btn = document.createElement('button');
+        btn.className = 'wa-qr-btn';
+        btn.textContent = q;
+        btn.onclick = () => { document.getElementById('waInput').value = q; waSend(); };
+        wrap.appendChild(btn);
+      });
+      qrEl.appendChild(wrap);
+    }
+    chat.scrollTop = chat.scrollHeight;
+  }, 1200);
+}
+
+function waUserSay(msg) {
+  const chat = document.getElementById('waChat');
+  const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const bubble = document.createElement('div');
+  bubble.className = 'wa-bubble user';
+  bubble.innerHTML = `${msg}<div class="wa-bubble-time">${now} ✓✓</div>`;
+  chat.appendChild(bubble);
+  document.getElementById('waQuickReplies').innerHTML = '';
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function waSend() {
+  const input = document.getElementById('waInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = ''; input.style.height = 'auto';
+  waUserSay(msg);
+  processWaMessage(msg.toLowerCase());
+}
+
+function processWaMessage(msg) {
+  // Top-level intents
+  if (!WA.flow) {
+    if (msg.includes('book') || msg.includes('parking') || msg.includes('🅿️')) {
+      WA.flow = 'book'; WA.step = 0;
+      const steps = WA_FLOWS.book;
+      setTimeout(() => waBotSay(steps[0].bot, steps[0].quick), 300);
+    } else if (msg.includes('booking') || msg.includes('my') || msg.includes('📋')) {
+      WA.flow = 'status'; WA.step = 0;
+      setTimeout(() => waBotSay(WA_FLOWS.status[0].bot, WA_FLOWS.status[0].quick), 300);
+    } else if (msg.includes('split') || msg.includes('💰')) {
+      setTimeout(() => { waBotSay("💰 Redirecting you to Split Parking screen…"); setTimeout(() => goTo('split','anim-in'), 1500); }, 300);
+    } else if (msg.includes('help') || msg.includes('🆘')) {
+      WA.flow = 'help'; WA.step = 0;
+      setTimeout(() => waBotSay(WA_FLOWS.help[0].bot, WA_FLOWS.help[0].quick), 300);
+    } else {
+      setTimeout(() => waBotSay("I didn't quite get that 🤔\n\nTry saying *Book Parking*, *My Bookings*, or *Help*.", ['Book Parking','My Bookings','Help']), 300);
+    }
+    return;
+  }
+
+  // Flow processing
+  if (WA.flow === 'book') {
+    const steps = WA_FLOWS.book;
+    WA.step++;
+    if (WA.step === 1) { WA.data.city = msg; }
+    if (WA.step === 2) { WA.data.park = msg.includes('race') ? 'Race Course Complex' : msg.includes('bypass')||msg.includes('ev') ? 'Bypass EV Park' : 'Anna Nagar Hub'; }
+    if (WA.step === 3) { WA.data.dur = msg; }
+    if (WA.step === 4) {
+      WA.data.vehicle = msg.toUpperCase();
+      // Simulate booking
+      const p = DB.parks[0];
+      DB.currentBooking = { id:'BKG-WA-'+Date.now(), parkName: WA.data.park||'Anna Nagar Hub', parkAddr:'Madurai', slot:'A-'+String(Math.floor(Math.random()*15)+1).padStart(2,'0'), vehicle: WA.data.vehicle, vehicleType:'car', duration: WA.data.dur||'2 hours', amount: 60, durationMins:120, start:new Date() };
+      const step = steps[4];
+      setTimeout(() => waBotSay(step.bot, step.quick, true), 300);
+      WA.flow = null; WA.step = 0;
+      return;
+    }
+    if (WA.step < steps.length) {
+      const step = steps[WA.step];
+      const txt = step.bot.replace('{city}', WA.data.city||'').replace('{park}', WA.data.park||'');
+      setTimeout(() => waBotSay(txt, step.quick||[]), 300);
+    }
+  } else if (WA.flow === 'status') {
+    if (msg.includes('extend')) { setTimeout(() => waBotSay("⏱️ Parking extended by 1 hour!\nNew expiry: *12:00 PM*\n\nAdditional charge: ₹30 (pay at exit)", ['End parking','Get directions','Back to menu']), 300); }
+    else if (msg.includes('end')) { setTimeout(() => waBotSay("🏁 Parking ended successfully!\n\nTotal time: 2 hrs\nTotal charge: ₹60\n\nThank you for using ParkLink! 🙏", ['Book again','Rate experience','Main menu']), 300); WA.flow=null; }
+    else if (msg.includes('direction')) { setTimeout(() => waBotSay("🗺️ Opening navigation to Anna Nagar Hub…\n\nETA: *4 min* from your current location"), 300); WA.flow=null; }
+    else { WA.flow=null; processWaMessage(msg); }
+  } else if (WA.flow === 'help') {
+    WA.flow = null;
+    processWaMessage(msg);
+  }
+}
+
+/* ════════════════════════════════════════════════
+   FEATURE 2 — FESTIVAL SURGE PREDICTION
+════════════════════════════════════════════════ */
+const SURGE_EVENTS = [
+  { emoji:'🛕', name:'Chithirai Festival', date:'Apr 14–18, 2025', days:'in 22 days', demand:'CRITICAL', pct:96, tip:'Book 3–4 days ahead. All central lots fill by 7 AM.', parks:[{name:'Meenakshi Temple Parking',pct:100,full:true},{name:'Town Hall Multi-Level',pct:92},{name:'Anna Nagar Hub',pct:78}] },
+  { emoji:'🎓', name:'Anna University Convocation', date:'Apr 6, 2025', days:'in 14 days', demand:'HIGH', pct:74, tip:'Morning slots fill fast. EV Park has good availability.', parks:[{name:'Anna Nagar Hub',pct:85},{name:'Race Course Complex',pct:60},{name:'Bypass EV Park',pct:45}] },
+  { emoji:'🎵', name:'AR Rahman Live — Madurai', date:'Apr 20, 2025', days:'in 28 days', demand:'HIGH', pct:81, tip:'Evening event. Expect 2x surge 2 hrs before show.', parks:[{name:'Town Hall Multi-Level',pct:90},{name:'Race Course Complex',pct:75},{name:'Anna Nagar Hub',pct:68}] },
+  { emoji:'🏏', name:'TNPL Cricket Match', date:'May 3, 2025', days:'in 41 days', demand:'MEDIUM', pct:55, tip:'Pre-book recommended. Street parking will be blocked.', parks:[{name:'Anna Nagar Hub',pct:60},{name:'Bypass EV Park',pct:40}] }
+];
+
+const TIMELINE_DAYS = [
+  { date:'Mon, Mar 24', event:'Normal day', hint:'~40% occupancy expected', color:'var(--green)', blocks:2 },
+  { date:'Tue, Mar 25', event:'Normal day', hint:'~45% occupancy expected', color:'var(--green)', blocks:2 },
+  { date:'Wed, Mar 26', event:'Govt holiday', hint:'Higher leisure traffic expected', color:'var(--amber)', blocks:5 },
+  { date:'Thu, Mar 27', event:'Normal day', hint:'~38% occupancy', color:'var(--green)', blocks:2 },
+  { date:'Fri, Mar 28', event:'Weekend rush begins', hint:'60–70% by evening', color:'var(--amber)', blocks:6 },
+  { date:'Sat, Mar 29', event:'⚠️ Heavy demand', hint:'Pre-book strongly advised', color:'var(--red)', blocks:9 },
+  { date:'Sun, Mar 30', event:'Sunday Market day', hint:'Central lots full by 10 AM', color:'var(--red)', blocks:8 }
+];
+
+function initSurge() {
+  // Timeline
+  const tl = document.getElementById('surgeTimeline');
+  tl.innerHTML = TIMELINE_DAYS.map((d,i) => `
+    <div class="st-day">
+      <div class="st-dot-col">
+        <div class="st-dot" style="background:${d.color}"></div>
+        ${i < TIMELINE_DAYS.length-1 ? '<div class="st-line"></div>' : ''}
+      </div>
+      <div class="st-content">
+        <div class="st-date">${d.date}</div>
+        <div class="st-event">${d.event}</div>
+        <div class="st-hint">${d.hint}</div>
+        <div class="demand-meter" style="margin-top:6px">
+          ${Array(10).fill(0).map((_,j) => `<div class="dm-block" style="${j < d.blocks ? 'background:'+d.color : ''}"></div>`).join('')}
+        </div>
+      </div>
+    </div>`).join('');
+
+  // Forecast cards
+  const fc = document.getElementById('forecastCards');
+  fc.innerHTML = SURGE_EVENTS.map(ev => {
+    const demClr = ev.demand==='CRITICAL' ? 'fc-demand-critical' : ev.demand==='HIGH' ? 'fc-demand-high' : 'fc-demand-medium';
+    return `<div class="forecast-card">
+      <div class="fc-header">
+        <div class="fc-event-icon">${ev.emoji}</div>
+        <div class="fc-event-info">
+          <div class="fc-event-name">${ev.name}</div>
+          <div class="fc-event-date">📅 ${ev.date} · ${ev.days}</div>
+        </div>
+        <div class="fc-demand-badge ${demClr}">${ev.demand}</div>
+      </div>
+      <div class="fc-body">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;padding:10px;background:var(--amber-light);border-radius:8px;line-height:1.6">💡 ${ev.tip}</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">Predicted Occupancy by Location:</div>
+        <div class="fc-parks">
+          ${ev.parks.map(p => `
+          <div class="fc-park-row">
+            <div class="fc-park-name">${p.full ? '🔴 ' : ''}${p.name}</div>
+            <div class="fc-bar-wrap"><div class="fc-bar" style="width:${p.pct}%;background:${p.pct>85?'var(--red)':p.pct>60?'var(--amber)':'var(--green)'}"></div></div>
+            <div class="fc-pct" style="color:${p.pct>85?'var(--red)':p.pct>60?'var(--amber)':'var(--green)'}">${p.pct}%</div>
+          </div>`).join('')}
+        </div>
+        <div class="fc-action-strip">
+          <button class="btn btn-sm btn-primary" style="flex:1" onclick="surgePrebook('${ev.name}')">📅 Pre-book Now</button>
+          <button class="btn btn-sm" style="background:var(--surface);color:var(--text-muted);flex:0.5" onclick="toast('Alert set for ${ev.name}','success','🔔')">🔔 Alert</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function surgePrebook(eventName) {
+  toast(`Finding best slots for ${eventName}…`, 'info', '📅');
+  setTimeout(() => { DB.currentPark = DB.parks[0]; goTo('booking','anim-in'); DB.bookingStep=1; renderBookingStep(1); }, 1000);
+}
+
+/* ════════════════════════════════════════════════
+   FEATURE 3 — SPLIT PARKING
+════════════════════════════════════════════════ */
+const CONTACTS = [
+  { name:'Karthik M', phone:'+91 98400 12345', initials:'K', color:'#4338ca' },
+  { name:'Priya Nair', phone:'+91 91234 56789', initials:'P', color:'#7c3aed' },
+  { name:'Siva Kumar', phone:'+91 93456 78901', initials:'S', color:'#065f46' },
+  { name:'Divya R',   phone:'+91 99876 54321', initials:'D', color:'#b45309' }
+];
+let selectedContact = null;
+let selectedUPIMethod = 'gpay';
+
+function initSplit() {
+  const b = DB.currentBooking || DB.bookings[0];
+  if (b) {
+    document.getElementById('splitParkName').textContent = b.parkName;
+    document.getElementById('splitBookingMeta').textContent = `Slot ${b.slot} · ${b.vehicle} · ${b.duration}`;
+    const total = b.amount || 60;
+    const half = Math.ceil(total/2);
+    document.getElementById('splitTotalAmt').textContent = '₹'+total;
+    document.getElementById('splitYourShare').textContent = '₹'+half;
+    document.getElementById('splitTheirShare').textContent = '₹'+(total-half);
+  }
+  document.getElementById('splitContacts').innerHTML = CONTACTS.map(c => `
+    <div class="contact-card" onclick="selectContact('${c.name}',this)">
+      <div class="contact-av" style="background:${c.color}">${c.initials}</div>
+      <div class="contact-info">
+        <div class="contact-name">${c.name}</div>
+        <div class="contact-phone">${c.phone}</div>
+      </div>
+      <div class="vehicle-radio" id="cr-${c.name.replace(' ','')}"></div>
+    </div>`).join('');
+}
+
+function selectContact(name, el) {
+  document.querySelectorAll('.contact-card').forEach(c => {
+    c.classList.remove('selected');
+    c.querySelector('.vehicle-radio').style.cssText = '';
+    c.querySelector('.vehicle-radio').innerHTML = '';
+  });
+  el.classList.add('selected');
+  el.querySelector('.vehicle-radio').style.cssText = 'border-color:var(--ev);background:var(--ev)';
+  el.querySelector('.vehicle-radio').innerHTML = '<span style="color:white;font-size:10px;font-weight:700">✓</span>';
+  selectedContact = name;
+}
+
+function selectUPI(el, method) {
+  document.querySelectorAll('.upi-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedUPIMethod = method;
+}
+
+function sendSplitRequest() {
+  if (!selectedContact) { toast('Please select a carpool partner first','warn','⚠️'); return; }
+  const b = DB.currentBooking || DB.bookings[0];
+  const total = b ? b.amount : 60;
+  const their = Math.floor(total/2);
+  showLoader('Sending split request via WhatsApp…');
+  setTimeout(() => {
+    hideLoader();
+    toast(`Split request sent to ${selectedContact}! They'll pay ₹${their} via ${selectedUPIMethod}`, 'success', '✅');
+    setTimeout(() => toast(`${selectedContact} accepted the split! ₹${their} received 🎉`, 'success', '💰'), 3500);
+  }, 1800);
+}
+
+/* ════════════════════════════════════════════════
+   FEATURE 4 — LIVE CCTV
+════════════════════════════════════════════════ */
+const CCTV_FEEDS = [
+  { label:'CAM-01 · Entry Gate', slot:'ENTRY', vehicle:'🚗', active:true },
+  { label:'CAM-02 · Zone A',     slot:'A-01 to A-15', vehicle:'🚙', active:false },
+  { label:'CAM-03 · Zone B',     slot:'B-01 to B-12', vehicle:'🚘', active:false },
+  { label:'CAM-04 · EV Bay',     slot:'EV-01 to EV-06', vehicle:'⚡🚗', active:false }
+];
+
+let cctvTick = null;
+
+function initCCTV(parkName) {
+  document.getElementById('cctvParkLabel').textContent = parkName || 'Anna Nagar Hub';
+  renderCCTVGrid();
+  updateCCTVTimestamp();
+  if (cctvTick) clearInterval(cctvTick);
+  cctvTick = setInterval(updateCCTVTimestamp, 1000);
+}
+
+function renderCCTVGrid() {
+  const grid = document.getElementById('cctvGrid');
+  grid.innerHTML = CCTV_FEEDS.map((feed, i) => `
+    <div class="cctv-feed ${i===0?'active-feed':''}" onclick="cctvFeedClick(${i})">
+      <div class="cctv-noise"></div>
+      <div class="cctv-overlay"></div>
+      <!-- Simulated parking lot -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.3" viewBox="0 0 300 170">
+        <rect x="20" y="20" width="260" height="130" rx="4" stroke="#00ff41" stroke-width="0.5" fill="none"/>
+        ${Array(6).fill(0).map((_,j) => `<line x1="${40+j*40}" y1="20" x2="${40+j*40}" y2="150" stroke="#00ff41" stroke-width="0.5" opacity="0.5"/>`).join('')}
+        <line x1="20" y1="85" x2="280" y2="85" stroke="#00ff41" stroke-width="0.5" opacity="0.5"/>
+      </svg>
+      <div class="cctv-vehicle" style="font-size:${i===0?'36':'22'}px">${feed.vehicle}</div>
+      <div class="cctv-scan-line"></div>
+      <div class="cctv-label">${feed.label}</div>
+      <div class="cctv-rec"><div class="rec-dot"></div><span class="rec-txt">REC</span></div>
+      <div class="cctv-timestamp" id="cctv-ts-${i}">00:00:00</div>
+      <div class="cctv-slot-tag">${feed.slot}</div>
+    </div>`).join('');
+}
+
+function cctvFeedClick(idx) {
+  toast(`CAM-0${idx+1} expanded — ${CCTV_FEEDS[idx].label}`,'info','📹');
+}
+
+function updateCCTVTimestamp() {
+  const now = new Date();
+  const ts = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  document.getElementById('cctvTimestamp').textContent = `${ts} · 4 cameras`;
+  for(let i=0;i<4;i++) {
+    const el = document.getElementById(`cctv-ts-${i}`);
+    if(el) el.textContent = ts;
+  }
+}
+
+function requestClip() {
+  showLoader('Fetching 30-sec clip from server…');
+  setTimeout(() => {
+    hideLoader();
+    const preview = document.getElementById('clipPreview');
+    preview.style.display = 'block';
+    preview.querySelector('.clip-progress').style.animation = 'none';
+    setTimeout(() => preview.querySelector('.clip-progress').style.animation = 'clipPlay 8s linear forwards', 50);
+    toast('Clip ready! Your vehicle is safe 🛡️','success','🎬');
+  }, 2200);
+}
+
+function cctvSnapshot() {
+  toast('Snapshot captured and saved to gallery','success','📸');
+}
+
+function cctvAlert() {
+  showLoader('Alerting security guard…');
+  setTimeout(() => { hideLoader(); toast('Security guard notified! Response in ~2 min','success','🛡️'); }, 1500);
+}
+
+function cctvFullscreen() {
+  toast('Full-screen mode requires native app','info','⛶');
+}
+
+/* ════════════════════════════════════════════════
+   FEATURE 5 — LAST MILE LINK
+════════════════════════════════════════════════ */
+const CAB_OPTIONS = [
+  { name:'Ola', icon:'🟡', logo:'🟡', type:'Mini', eta:4, price:45, desc:'4-seater · AC', deeplink:'ola', color:'#f59e0b' },
+  { name:'Rapido', icon:'🔵', logo:'🔵', type:'Bike', eta:2, price:18, desc:'Bike taxi · fastest', deeplink:'rapido', color:'#2563eb' },
+  { name:'Namma Yatri', icon:'🟢', logo:'🟢', type:'Auto', eta:6, price:32, desc:'3-wheeler · no surge', deeplink:'nammayatri', color:'#10b981' },
+  { name:'Uber', icon:'⬛', logo:'⬛', type:'Go', eta:5, price:52, desc:'4-seater · AC', deeplink:'uber', color:'#0f172a' }
+];
+
+const DESTINATIONS = ['Meenakshi Temple','Madurai Airport','Periyar Bus Stand','Samayanallur IT Park','Madurai Junction','Palaniswami Nagar','Alagar Kovil','Kochadai'];
+
+let selectedCab = null;
+let lmDestination = '';
+
+function initLastMile() {
+  const p = DB.currentPark || DB.parks[0];
+  document.getElementById('lmFromName').textContent = p.name;
+  renderCabList();
+}
+
+function lmFilterDest(val) {
+  lmDestination = val;
+  if (val.length > 2) {
+    document.getElementById('lmToName').textContent = val;
+    document.getElementById('lmToPin').textContent = '🏁';
+    const dist = (Math.random()*4+0.8).toFixed(1);
+    document.getElementById('lmDistLabel').textContent = `📍 ${dist} km away · ~${Math.round(dist*3)} min`;
+    renderCabList(dist);
+  }
+}
+
+function setDest(dest) {
+  lmDestination = dest;
+  document.getElementById('lmDestInput').value = dest;
+  document.getElementById('lmToName').textContent = dest;
+  document.getElementById('lmToPin').textContent = '🏁';
+  const dist = (Math.random()*5+1).toFixed(1);
+  document.getElementById('lmDistLabel').textContent = `📍 ${dist} km away · ~${Math.round(dist*3)} min`;
+  renderCabList(dist);
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function renderCabList(dist=2.5) {
+  const list = document.getElementById('cabList');
+  list.innerHTML = CAB_OPTIONS.map((c,i) => {
+    const adjPrice = Math.round(c.price * (parseFloat(dist)||2.5) / 2);
+    const adjEta = c.eta + Math.floor(Math.random()*3);
+    return `<div class="cab-card ${selectedCab===i?'selected':''}" onclick="selectCab(${i},this)">
+      <div class="cab-logo" style="background:${c.color}22;font-size:28px">${c.icon}</div>
+      <div class="cab-info">
+        <div class="cab-name" style="color:${c.color}">${c.name} ${c.type}</div>
+        <div class="cab-detail">${c.desc}</div>
+      </div>
+      <div class="cab-eta-badge">
+        <div class="cab-eta">${adjEta} min</div>
+        <div class="cab-price">₹${adjPrice}</div>
+      </div>
+    </div>`;
+  }).join('');
+  // Add book button if destination set
+  if (lmDestination) {
+    list.innerHTML += `<button class="btn btn-primary" style="margin-top:8px" onclick="bookLastMile()">🚀 Book Ride Now</button>
+    <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:8px">Opens ${selectedCab!==null ? CAB_OPTIONS[selectedCab].name : 'ride app'} with your parking location pre-filled</div>`;
+  }
+}
+
+function selectCab(idx, el) {
+  selectedCab = idx;
+  document.querySelectorAll('.cab-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function bookLastMile() {
+  if (!lmDestination) { toast('Enter your destination first','warn','📍'); return; }
+  const cab = selectedCab !== null ? CAB_OPTIONS[selectedCab] : CAB_OPTIONS[0];
+  showLoader(`Opening ${cab.name}…`);
+  setTimeout(() => {
+    hideLoader();
+    toast(`${cab.name} opened with parking location pre-filled! 🚀`, 'success', cab.icon);
+  }, 1500);
+}
+
+/* ────────────────────────────────────────────────
+   FEATURE OPENERS
+──────────────────────────────────────────────── */
+function openWABot() {
+  goTo('whatsapp-bot','anim-in');
+  setTimeout(() => initWhatsApp(), 80);
+}
+function openSurge() {
+  goTo('surge','anim-in');
+  setTimeout(() => initSurge(), 80);
+}
+function openSplit() {
+  goTo('split','anim-in');
+  setTimeout(() => initSplit(), 80);
+}
+function openCCTV() {
+  const p = DB.currentPark || DB.parks[0];
+  goTo('cctv','anim-in');
+  setTimeout(() => initCCTV(p.name), 80);
+}
+function openLastMile() {
+  goTo('lastmile','anim-in');
+  setTimeout(() => initLastMile(), 80);
+}
+
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Session observer
+  const session = document.getElementById('session');
+  if (session) {
+    const obs = new MutationObserver(() => {
+      if (session.classList.contains('active') && !DB.sessionActive) startSession();
+    });
+    obs.observe(session, { attributes:true, attributeFilter:['class'] });
+  }
+});
+</script>
+</body>
+</html>
