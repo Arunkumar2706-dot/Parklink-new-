@@ -1091,8 +1091,9 @@
     </div>
 
     <!-- Destination input -->
-    <div class="lm-dest-input">
-      <input class="lm-dest-field" id="lmDestInput" placeholder="🔍 Where are you going?" oninput="lmFilterDest(this.value)">
+    <div class="lm-dest-input" style="position:relative">
+      <input class="lm-dest-field" id="lmDestInput" placeholder="🔍 Where are you going?" oninput="lmFilterDest(this.value)" onfocus="lmFilterDest(this.value)" autocomplete="off">
+      <div id="lmSuggestions" style="position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:0 0 12px 12px;max-height:200px;overflow-y:auto;z-index:100;display:none;box-shadow:var(--shadow-md)"></div>
     </div>
 
     <!-- Quick destinations -->

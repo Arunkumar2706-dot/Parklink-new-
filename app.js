@@ -1651,14 +1651,31 @@ function initLastMile() {
 }
 
 function lmFilterDest(val) {
-  lmDestination = val;
-  if (val.length > 2) {
-    document.getElementById('lmToName').textContent = val;
-    document.getElementById('lmToPin').textContent = '🏁';
-    const dist = (Math.random()*4+0.8).toFixed(1);
-    document.getElementById('lmDistLabel').textContent = `📍 ${dist} km away · ~${Math.round(dist*3)} min`;
-    renderCabList(dist);
+  const sugBox = document.getElementById('lmSuggestions');
+  if (!val || val.length < 1) {
+    sugBox.style.display = 'none';
+    return;
   }
+  
+  const matches = DESTINATIONS.filter(d => d.toLowerCase().includes(val.toLowerCase()));
+  
+  if (matches.length === 0) {
+    sugBox.style.display = 'none';
+    return;
+  }
+  
+  sugBox.innerHTML = matches.map(d => `
+    <div style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);transition:background 0.15s" 
+         onmouseover="this.style.background='var(--surface)'" 
+         onmouseout="this.style.background='transparent'" 
+         onclick="setDest('${d}')">
+      <span style="font-size:18px">📍</span>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${d}</div>
+        <div style="font-size:11px;color:var(--text-muted)">Madurai, Tamil Nadu</div>
+      </div>
+    </div>`).join('');
+  sugBox.style.display = 'block';
 }
 
 function setDest(dest) {
@@ -1666,11 +1683,16 @@ function setDest(dest) {
   document.getElementById('lmDestInput').value = dest;
   document.getElementById('lmToName').textContent = dest;
   document.getElementById('lmToPin').textContent = '🏁';
-  const dist = (Math.random()*5+1).toFixed(1);
+  document.getElementById('lmSuggestions').style.display = 'none';
+  
+  // Calculate a realistic distance based on destination name hash
+  let hash = 0;
+  for (let i = 0; i < dest.length; i++) hash += dest.charCodeAt(i);
+  const dist = ((hash % 40) / 10 + 1.2).toFixed(1);
+  
   document.getElementById('lmDistLabel').textContent = `📍 ${dist} km away · ~${Math.round(dist*3)} min`;
   renderCabList(dist);
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  event.target.classList.add('active');
 }
 
 function renderCabList(dist=2.5) {
@@ -1706,11 +1728,36 @@ function selectCab(idx, el) {
 function bookLastMile() {
   if (!lmDestination) { toast('Enter your destination first','warn','📍'); return; }
   const cab = selectedCab !== null ? CAB_OPTIONS[selectedCab] : CAB_OPTIONS[0];
+  const park = DB.currentPark || DB.parks[0];
+  const origin = encodeURIComponent(park.addr + ', Madurai');
+  const destination = encodeURIComponent(lmDestination + ', Madurai');
+  
   showLoader(`Opening ${cab.name}…`);
   setTimeout(() => {
     hideLoader();
-    toast(`${cab.name} opened with parking location pre-filled! 🚀`, 'success', cab.icon);
-  }, 1500);
+    
+    // Build deep-link URL based on selected cab
+    let url = '';
+    switch(cab.deeplink) {
+      case 'ola':
+        url = `https://book.olacabs.com/?pickup=${origin}&drop=${destination}`;
+        break;
+      case 'uber':
+        url = `https://m.uber.com/ul/?action=setPickup&pickup[formatted_address]=${origin}&dropoff[formatted_address]=${destination}`;
+        break;
+      case 'rapido':
+        url = `https://www.google.com/maps/dir/${origin}/${destination}/?travelmode=driving`;
+        break;
+      case 'nammayatri':
+        url = `https://www.google.com/maps/dir/${origin}/${destination}/?travelmode=driving`;
+        break;
+      default:
+        url = `https://www.google.com/maps/dir/${origin}/${destination}/?travelmode=driving`;
+    }
+    
+    window.open(url, '_blank');
+    toast(`${cab.name} ride from ${park.name} to ${lmDestination} 🚀`, 'success', cab.icon);
+  }, 1000);
 }
 
 /* ────────────────────────────────────────────────
